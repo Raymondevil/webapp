@@ -162,17 +162,30 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
                         decoding="async"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
+                      {item.type === 'video' && (
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <div className="w-14 h-14 rounded-full bg-amber-500/90 text-slate-950 flex items-center justify-center text-xl pl-0.5 shadow-2xl shadow-amber-500/50 group-hover:scale-110 group-hover:bg-amber-400 transition-all">
+                            <i className="fa-solid fa-play"></i>
+                          </div>
+                        </div>
+                      )}
+
                       <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                        <span className="bg-amber-500 text-slate-950 font-bold text-xs px-3 py-1.5 rounded-xl shadow-lg">
-                          <i className="fa-solid fa-expand mr-1"></i> Ampliar
+                        <span className="bg-amber-500 text-slate-950 font-bold text-xs px-3 py-1.5 rounded-xl shadow-lg flex items-center gap-1.5">
+                          <i className={`fa-solid ${item.type === 'video' ? 'fa-play' : 'fa-expand'}`}></i>
+                          {item.type === 'video' ? 'Ver Video' : 'Ampliar'}
                         </span>
                       </div>
 
-                      {item.dorsal && (
+                      {item.type === 'video' ? (
+                        <span className="absolute top-3 left-3 bg-red-600 text-white font-black text-[10px] px-2.5 py-1 rounded-md shadow-md flex items-center gap-1">
+                          <i className="fa-solid fa-video"></i> VIDEO HD
+                        </span>
+                      ) : item.dorsal ? (
                         <span className="absolute top-3 left-3 bg-amber-500 text-slate-950 font-black text-xs px-2.5 py-1 rounded-md shadow-md">
                           #{item.dorsal}
                         </span>
-                      )}
+                      ) : null}
 
                       <span className="absolute bottom-3 right-3 bg-slate-950/90 text-amber-400 text-[10px] font-bold px-2 py-1 rounded border border-slate-800">
                         {item.date}

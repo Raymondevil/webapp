@@ -3,6 +3,7 @@ import axios from 'axios'
 
 import { Header } from './components/Header'
 import { Hero } from './components/Hero'
+import { VideoBanner } from './components/VideoBanner'
 import { PricingSection } from './components/PricingSection'
 import { EventsProgram } from './components/EventsProgram'
 import { GallerySection } from './components/GallerySection'
@@ -122,6 +123,19 @@ export function App() {
                 el?.scrollIntoView({ behavior: 'smooth' })
               }}
               onOpenSeleccionar={() => setActiveTab('seleccionar')}
+              onOpenVideo={() => {
+                const el = document.getElementById('video-trailer')
+                el?.scrollIntoView({ behavior: 'smooth' })
+              }}
+            />
+
+            {/* DEDICATED VIDEO BANNER & PLAYER */}
+            <VideoBanner
+              onSelectVideoPass={() => setVideoPass(true)}
+              onOpenCotizador={() => {
+                const el = document.getElementById('cotizador')
+                el?.scrollIntoView({ behavior: 'smooth' })
+              }}
             />
 
             <PricingSection
@@ -144,6 +158,8 @@ export function App() {
             <OrderCalculator
               events={events}
               selectedPhotos={selectedPhotos}
+              videoPass={videoPass}
+              setVideoPass={setVideoPass}
               onOrderSubmitted={handleOrderSubmitted}
             />
 

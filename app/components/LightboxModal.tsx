@@ -26,14 +26,24 @@ export const LightboxModal: React.FC<LightboxModalProps> = ({
         </button>
 
         {/* IMAGE / VIDEO MEDIA CONTAINER */}
-        <div className="md:w-3/5 bg-slate-950 flex items-center justify-center p-4 relative min-h-[300px]">
+        <div className="md:w-3/5 bg-slate-950 flex items-center justify-center p-4 relative min-h-[320px]">
           {photo.type === 'video' ? (
-            <video
-              src={photo.videoUrl || photo.url}
-              controls
-              autoPlay
-              className="max-h-[60vh] w-full object-contain rounded-xl"
-            />
+            <div className="w-full h-full flex items-center justify-center relative">
+              <video
+                src={photo.videoUrl || photo.url}
+                poster="/static/logo.jpg"
+                controls
+                autoPlay
+                playsInline
+                className="max-h-[60vh] w-full object-contain rounded-xl bg-black shadow-2xl"
+              >
+                <source src={photo.videoUrl || photo.url} type="video/mp4" />
+                Tu navegador no soporta la reproducción de este video.
+              </video>
+              <div className="absolute top-4 left-4 bg-slate-950/80 backdrop-blur-md text-amber-400 text-xs font-black px-2.5 py-1 rounded-lg border border-amber-500/30">
+                <i className="fa-solid fa-film mr-1"></i> Reproductor de Video HD
+              </div>
+            </div>
           ) : (
             <img
               src={photo.url}

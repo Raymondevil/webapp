@@ -86,6 +86,19 @@ export const officialEvents: EventItem[] = [
 
 export const initialGallery: GalleryItem[] = [
   {
+    id: "g-video-1",
+    title: "Video Oficial - Tráiler y Resumen de Fiestas Patrias",
+    category: "videos",
+    date: "10 al 17 de Septiembre",
+    type: "video",
+    url: "/static/logo.jpg",
+    videoUrl: "/static/video/vueno.mp4",
+    description:
+      "Video completo de cobertura HD de las Fiestas Patrias de San Pedro Lagunillas: Topaderas, Cabalgatas, Noche del Grito, Desfiles y Bailes Populares.",
+    price: 600,
+    dorsal: "VIDEO",
+  },
+  {
     id: "g1",
     title: "Desfile de Antorchas Nocturno (Dorsal #101)",
     category: "desfiles",
