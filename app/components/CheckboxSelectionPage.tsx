@@ -20,6 +20,7 @@ export const CheckboxSelectionPage: React.FC<CheckboxSelectionPageProps> = ({
 }) => {
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('all')
+  const [visibleCount, setVisibleCount] = useState<number>(24)
 
   const togglePhotoSelection = (id: string, format: 'digital' | 'fisica' | 'marco' = 'digital') => {
     const nextMap = new Map(selectedPhotoMap)
@@ -57,6 +58,8 @@ export const CheckboxSelectionPage: React.FC<CheckboxSelectionPageProps> = ({
     }
     return true
   })
+
+  const visibleItems = filteredItems.slice(0, visibleCount)
 
   // WhatsApp url generator
   const generateWhatsAppUrl = () => {
@@ -97,7 +100,10 @@ export const CheckboxSelectionPage: React.FC<CheckboxSelectionPageProps> = ({
             <input
               type="text"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value)
+                setVisibleCount(24)
+              }}
               placeholder="Buscar por dorsal (#12, #45) o título..."
               className="w-full bg-slate-950 border border-slate-700 focus:border-amber-400 rounded-xl px-4 py-2.5 pl-10 text-xs text-white placeholder-slate-500 focus:outline-none"
             />
@@ -108,7 +114,10 @@ export const CheckboxSelectionPage: React.FC<CheckboxSelectionPageProps> = ({
             {['all', 'topaderas', 'cabalgatas', 'grito', 'desfiles', 'bailes'].map((cat) => (
               <button
                 key={cat}
-                onClick={() => setCategoryFilter(cat)}
+                onClick={() => {
+                  setCategoryFilter(cat)
+                  setVisibleCount(24)
+                }}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold capitalize whitespace-nowrap transition-all cursor-pointer ${
                   categoryFilter === cat
                     ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
@@ -152,7 +161,7 @@ export const CheckboxSelectionPage: React.FC<CheckboxSelectionPageProps> = ({
 
       {/* PHOTO CHECKBOX GRID */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {filteredItems.map((item) => {
+        {visibleItems.map((item) => {
           const isSelected = selectedPhotoMap.has(item.id)
           const currentFmt = selectedPhotoMap.get(item.id) || 'digital'
 
@@ -167,7 +176,13 @@ export const CheckboxSelectionPage: React.FC<CheckboxSelectionPageProps> = ({
             >
               <div>
                 <div className="relative aspect-[4/3] bg-slate-950 overflow-hidden">
-                  <img src={item.url} alt={item.title} className="w-full h-full object-cover" />
+                  <img
+                    src={item.url}
+                    alt={item.title}
+                    loading="lazy"
+                    decoding="async"
+                    className="w-full h-full object-cover"
+                  />
 
                   {/* CHECKBOX OVERLAY */}
                   <button
@@ -242,6 +257,18 @@ export const CheckboxSelectionPage: React.FC<CheckboxSelectionPageProps> = ({
           )
         })}
       </div>
+
+      {/* LOAD MORE BUTTON */}
+      {visibleCount < filteredItems.length && (
+        <div className="text-center pt-6">
+          <button
+            onClick={() => setVisibleCount((prev) => prev + 24)}
+            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-sm px-8 py-3.5 rounded-2xl shadow-xl shadow-amber-500/20 transition-all cursor-pointer inline-flex items-center gap-2"
+          >
+            <i className="fa-solid fa-circle-plus"></i> Mostrar más casillas ({filteredItems.length - visibleCount} restantes)
+          </button>
+        </div>
+      )}
 
       {/* FLOATING CHECKOUT BAR AT BOTTOM */}
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-slate-950/95 backdrop-blur-md border-t border-amber-500/40 p-4 shadow-2xl">
