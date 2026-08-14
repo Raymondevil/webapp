@@ -14,6 +14,8 @@
 		"publish": true
 	},
 	"dependencies": {
+		"axios": "^1.19.0",
+		"hono": "^4.13.2",
 		"isbot": "5.1.32",
 		"react": "19.2.1",
 		"react-dom": "19.2.1",
@@ -21,6 +23,7 @@
 	},
 	"devDependencies": {
 		"@cloudflare/vite-plugin": "1.15.3",
+		"@cloudflare/workers-types": "^4.20260702.1",
 		"@react-router/dev": "7.9.6",
 		"@tailwindcss/vite": "4.1.17",
 		"@types/node": "24.10.1",
@@ -36,6 +39,7 @@
 	"scripts": {
 		"build": "react-router build",
 		"cf-typegen": "wrangler types && react-router typegen",
+		"typegen": "wrangler types && react-router typegen",
 		"check": "tsc && react-router build && wrangler deploy --dry-run",
 		"deploy": "wrangler deploy",
 		"dev": "react-router dev",
