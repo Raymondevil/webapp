@@ -187,8 +187,15 @@ app.post('/api/admin/login', async (c) => {
   try {
     const body = await c.req.json()
     const password = body.password
-    // Default password check
-    if (password === 'eltigre2026' || password === 'admin' || password === 'admin123') {
+    
+    if (!password || typeof password !== 'string') {
+      return c.json({ success: false, error: 'Contraseña requerida' }, 400)
+    }
+    
+    // Use environment variable for secure password (recommended for production)
+    const adminPassword = (c.env as any)?.ADMIN_PASSWORD || 'eltigre2026'
+    
+    if (password === adminPassword) {
       return c.json({ success: true, token: 'admin-secret-token-eltigre' })
     }
     return c.json({ success: false, error: 'Contraseña incorrecta' }, 401)
@@ -245,10 +252,40 @@ app.post('/api/gallery/register', async (c) => {
   }
 })
 
+// Validate order data
+function validateOrder(data: any): { valid: boolean; error?: string } {
+  if (!data.clientName || typeof data.clientName !== 'string' || data.clientName.trim().length === 0) {
+    return { valid: false, error: 'Nombre del cliente es requerido' }
+  }
+  if (!data.phone || typeof data.phone !== 'string' || data.phone.length < 10) {
+    return { valid: false, error: 'Teléfono inválido (mínimo 10 dígitos)' }
+  }
+  if (typeof data.videoPass !== 'boolean') {
+    return { valid: false, error: 'Datos de video inválidos' }
+  }
+  if (typeof data.photoCount !== 'number' || data.photoCount < 0) {
+    return { valid: false, error: 'Cantidad de fotos inválida' }
+  }
+  if (typeof data.total !== 'number' || data.total < 0) {
+    return { valid: false, error: 'Total inválido' }
+  }
+  // At least one product should be selected
+  if (data.photoCount === 0 && !data.videoPass) {
+    return { valid: false, error: 'Debes seleccionar al menos un producto' }
+  }
+  return { valid: true }
+}
+
 // POST /api/orders
 app.post('/api/orders', async (c) => {
   try {
     const body = await c.req.json()
+    
+    // Validate incoming data
+    const validation = validateOrder(body)
+    if (!validation.valid) {
+      return c.json({ success: false, error: validation.error }, 400)
+    }
     const newOrder: Order = {
       id: 'TIG-' + Math.floor(1000 + Math.random() * 9000),
       clientName: body.clientName || 'Cliente',

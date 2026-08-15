@@ -43,9 +43,18 @@ export function App() {
   const loadData = async () => {
     try {
       const [eventsRes, galleryRes, ordersRes] = await Promise.all([
-        axios.get('/api/events').catch(() => null),
-        axios.get('/api/gallery').catch(() => null),
-        axios.get('/api/orders').catch(() => null)
+        axios.get('/api/events').catch((err) => {
+          console.error('Error loading events:', err.message)
+          return null
+        }),
+        axios.get('/api/gallery').catch((err) => {
+          console.error('Error loading gallery:', err.message)
+          return null
+        }),
+        axios.get('/api/orders').catch((err) => {
+          console.error('Error loading orders:', err.message)
+          return null
+        })
       ])
 
       if (eventsRes?.data?.events) {
@@ -58,7 +67,8 @@ export function App() {
         setOrders(ordersRes.data.orders)
       }
     } catch (err) {
-      console.log('Using initial fallback data:', err)
+      console.error('Critical error loading data:', err)
+      showToast('⚠️ Error cargando datos. Usando datos almacenados.')
     }
   }
 

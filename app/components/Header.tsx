@@ -45,6 +45,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={() => setActiveTab('main')}
             className="flex items-center gap-3 group text-left cursor-pointer"
+            aria-label="Ir a inicio - Fotografías El Tigre"
           >
             <div className="w-12 h-12 md:w-14 md:h-14 rounded-full p-0.5 bg-gradient-to-br from-amber-400 via-amber-500 to-red-600 shadow-lg shadow-amber-500/20 group-hover:scale-105 transition-transform overflow-hidden">
               <img
@@ -90,6 +91,7 @@ export const Header: React.FC<HeaderProps> = ({
                   ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md shadow-amber-500/20'
                   : 'bg-amber-500/10 text-amber-300 border-amber-500/30 hover:bg-amber-500/20'
               }`}
+              aria-label="Seleccionar fotos por casillas"
             >
               <i className="fa-solid fa-square-check"></i>
               Selección por Casillas

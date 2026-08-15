@@ -78,11 +78,25 @@ export const OrderCalculator: React.FC<OrderCalculatorProps> = ({
     return `https://wa.me/523118470860?text=${encodeURIComponent(text)}`
   }
 
+  // Validate phone format (Mexican format)
+  const isValidPhone = (phoneStr: string): boolean => {
+    const cleanPhone = phoneStr.replace(/\D/g, '')
+    return cleanPhone.length >= 10 && cleanPhone.length <= 15
+  }
+
   // Register online order via API
   const handleSubmitOnline = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!clientName.trim() || !phone.trim()) {
       setMessage({ type: 'error', text: 'Por favor ingresa tu Nombre y Teléfono.' })
+      return
+    }
+    if (!isValidPhone(phone)) {
+      setMessage({ type: 'error', text: 'El teléfono debe tener entre 10 y 15 dígitos.' })
+      return
+    }
+    if (photoCounts.digital === 0 && photoCounts.fisica === 0 && photoCounts.marco === 0 && !videoPass) {
+      setMessage({ type: 'error', text: 'Selecciona al menos un producto (foto o video).' })
       return
     }
 
