@@ -68,17 +68,25 @@ export const AdminSection: React.FC<AdminSectionProps> = ({
     setUploadMessage(null)
 
     try {
-      const res = await axios.post('/api/gallery/register', {
-        title: newTitle,
-        category: newCategory,
-        date: newDate,
-        type: newType,
-        url: newUrl,
-        videoUrl: newType === 'video' ? newUrl : undefined,
-        description: newDescription,
-        price: Number(newPrice),
-        dorsal: newDorsal
-      })
+      const res = await axios.post(
+        '/api/gallery/register',
+        {
+          title: newTitle,
+          category: newCategory,
+          date: newDate,
+          type: newType,
+          url: newUrl,
+          videoUrl: newType === 'video' ? newUrl : undefined,
+          description: newDescription,
+          price: Number(newPrice),
+          dorsal: newDorsal
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${authToken}`
+          }
+        }
+      )
 
       if (res.data && res.data.success) {
         setUploadMessage({ type: 'success', text: '¡Fotografía/Video registrado en el catálogo!' })

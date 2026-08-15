@@ -4,12 +4,14 @@ interface HeroProps {
   onOpenCotizador: () => void
   onOpenGaleria: () => void
   onOpenSeleccionar: () => void
+  onOpenVideo?: () => void
 }
 
 export const Hero: React.FC<HeroProps> = ({
   onOpenCotizador,
   onOpenGaleria,
-  onOpenSeleccionar
+  onOpenSeleccionar,
+  onOpenVideo
 }) => {
   const LOCAL_LOGO_URL = '/static/logo.jpg'
 
@@ -84,16 +86,23 @@ export const Hero: React.FC<HeroProps> = ({
           <div className="lg:col-span-5 relative">
             <div className="relative mx-auto max-w-md lg:max-w-none rounded-3xl p-1 bg-gradient-to-b from-amber-500/40 via-amber-900/20 to-slate-900 shadow-2xl hero-card-glow overflow-hidden">
               <div className="bg-slate-900/90 backdrop-blur-xl rounded-[23px] p-6 space-y-6">
-                <div className="relative aspect-video rounded-2xl overflow-hidden shadow-lg border border-amber-500/30 group">
+                <div 
+                  onClick={onOpenVideo}
+                  className="relative aspect-video rounded-2xl overflow-hidden shadow-lg border border-amber-500/30 group cursor-pointer"
+                >
                   <img
                     src={LOCAL_LOGO_URL}
                     alt="San Pedro Lagunillas Fiestas Patrias"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-80" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex items-center justify-center">
+                    <span className="w-12 h-12 rounded-full bg-amber-500/90 text-slate-950 flex items-center justify-center text-xl shadow-lg transform group-hover:scale-110 transition-transform">
+                      <i className="fa-solid fa-play ml-0.5" />
+                    </span>
+                  </div>
                   <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white">
                     <span className="bg-amber-500 text-slate-950 font-black text-xs px-2.5 py-1 rounded-md uppercase">
-                      San Pedro Lagunillas
+                      Ver Tráiler HD
                     </span>
                     <span className="text-xs font-semibold text-slate-200 bg-slate-950/80 px-2 py-1 rounded-md backdrop-blur-sm">
                       <i className="fa-solid fa-camera-retro text-amber-400 mr-1"></i> "El Tigre"

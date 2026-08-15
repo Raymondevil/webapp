@@ -16,6 +16,7 @@ app.use('/api/*', cors())
 let memoryGallery: GalleryItem[] = [...initialGallery]
 let memoryOrders: Order[] = [...initialOrders]
 let memoryContacts: ContactMessage[] = []
+let tablesInitialized = false
 
 // D1 Helper utilities
 function getD1(c: any) {
@@ -23,7 +24,7 @@ function getD1(c: any) {
 }
 
 async function ensureTables(db: any) {
-  if (!db) return
+  if (!db || tablesInitialized) return
   try {
     await db.exec(`
       CREATE TABLE IF NOT EXISTS gallery (
@@ -83,6 +84,7 @@ async function ensureTables(db: any) {
         ).run()
       }
     }
+    tablesInitialized = true
   } catch (err) {
     console.error('D1 Table init error:', err)
   }
@@ -207,6 +209,14 @@ app.post('/api/admin/login', async (c) => {
 // POST /api/gallery/register
 app.post('/api/gallery/register', async (c) => {
   try {
+    const authHeader = c.req.header('Authorization')
+    const token = authHeader ? authHeader.replace(/^Bearer\s+/i, '') : null
+    const validToken = 'admin-secret-token-eltigre'
+
+    if (token !== validToken && token !== 'admin-secret-token') {
+      return c.json({ success: false, error: 'Acceso no autorizado' }, 401)
+    }
+
     const body = await c.req.json()
     const newItem: GalleryItem = {
       id: 'g-' + Date.now(),
@@ -342,19 +352,34 @@ app.get('/api/orders', async (c) => {
       await ensureTables(db)
       const res = await db.prepare('SELECT * FROM orders ORDER BY createdAt DESC').all()
       if (res?.results && res.results.length > 0) {
-        ordersList = res.results.map((row: any) => ({
-          id: row.id,
-          clientName: row.clientName,
-          phone: row.phone,
-          videoPass: Boolean(row.videoPass),
-          photoCount: Number(row.photoCount),
-          selectedPhotoIds: JSON.parse(row.selectedPhotoIds || '[]'),
-          selectedEvents: JSON.parse(row.selectedEvents || '[]'),
-          notes: row.notes || '',
-          total: Number(row.total),
-          status: row.status || 'Pendiente',
-          createdAt: row.createdAt
-        }))
+        ordersList = res.results.map((row: any) => {
+          let selectedPhotoIds: string[] = []
+          let selectedEvents: string[] = []
+          try {
+            selectedPhotoIds = typeof row.selectedPhotoIds === 'string' ? JSON.parse(row.selectedPhotoIds) : (row.selectedPhotoIds || [])
+          } catch {
+            selectedPhotoIds = []
+          }
+          try {
+            selectedEvents = typeof row.selectedEvents === 'string' ? JSON.parse(row.selectedEvents) : (row.selectedEvents || [])
+          } catch {
+            selectedEvents = []
+          }
+
+          return {
+            id: row.id,
+            clientName: row.clientName,
+            phone: row.phone,
+            videoPass: Boolean(row.videoPass),
+            photoCount: Number(row.photoCount),
+            selectedPhotoIds,
+            selectedEvents,
+            notes: row.notes || '',
+            total: Number(row.total),
+            status: row.status || 'Pendiente',
+            createdAt: row.createdAt
+          }
+        })
         memoryOrders = ordersList
       }
     } catch (e) {

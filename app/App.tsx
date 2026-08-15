@@ -76,10 +76,16 @@ export function App() {
     loadData()
   }, [])
 
+  // Sync selectedPhotos whenever selectedPhotoMap changes
+  useEffect(() => {
+    const keys = Array.from(selectedPhotoMap.keys())
+    const items = galleryItems.filter((item) => keys.includes(item.id))
+    setSelectedPhotos(items)
+  }, [selectedPhotoMap, galleryItems])
+
   // Handlers
   const handleAddPhotoToOrder = (photo: GalleryItem) => {
-    if (!selectedPhotos.find((p) => p.id === photo.id)) {
-      setSelectedPhotos([...selectedPhotos, photo])
+    if (!selectedPhotoMap.has(photo.id)) {
       const nextMap = new Map(selectedPhotoMap)
       nextMap.set(photo.id, 'digital')
       setSelectedPhotoMap(nextMap)

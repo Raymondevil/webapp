@@ -1,24 +1,34 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import axios from 'axios'
 import type { EventItem, GalleryItem } from '../types'
 
 interface OrderCalculatorProps {
   events: EventItem[]
   selectedPhotos: GalleryItem[]
+  videoPass: boolean
+  setVideoPass: (val: boolean | ((prev: boolean) => boolean)) => void
   onOrderSubmitted: (orderId: string) => void
 }
 
 export const OrderCalculator: React.FC<OrderCalculatorProps> = ({
   events,
   selectedPhotos,
+  videoPass,
+  setVideoPass,
   onOrderSubmitted
 }) => {
-  const [videoPass, setVideoPass] = useState<boolean>(false)
   const [photoCounts, setPhotoCounts] = useState<{ digital: number; fisica: number; marco: number }>({
     digital: selectedPhotos.length || 0,
     fisica: 0,
     marco: 0
   })
+
+  // Sync count if selectedPhotos change from gallery/casillas
+  useEffect(() => {
+    if (selectedPhotos.length > 0 && photoCounts.digital === 0 && photoCounts.fisica === 0 && photoCounts.marco === 0) {
+      setPhotoCounts((prev) => ({ ...prev, digital: selectedPhotos.length }))
+    }
+  }, [selectedPhotos])
   const [selectedEvents, setSelectedEvents] = useState<string[]>([])
   const [clientName, setClientName] = useState<string>('')
   const [phone, setPhone] = useState<string>('')
