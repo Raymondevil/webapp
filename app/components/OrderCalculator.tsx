@@ -6,20 +6,14 @@ interface OrderCalculatorProps {
   events: EventItem[]
   selectedPhotos: GalleryItem[]
   onOrderSubmitted: (orderId: string) => void
-  videoPass?: boolean
-  setVideoPass?: React.Dispatch<React.SetStateAction<boolean>>
 }
 
 export const OrderCalculator: React.FC<OrderCalculatorProps> = ({
   events,
   selectedPhotos,
-  onOrderSubmitted,
-  videoPass: externalVideoPass,
-  setVideoPass: externalSetVideoPass
+  onOrderSubmitted
 }) => {
-  const [internalVideoPass, setInternalVideoPass] = useState<boolean>(false)
-  const videoPass = externalVideoPass !== undefined ? externalVideoPass : internalVideoPass
-  const setVideoPass = externalSetVideoPass || setInternalVideoPass
+  const [videoPass, setVideoPass] = useState<boolean>(false)
   const [photoCounts, setPhotoCounts] = useState<{ digital: number; fisica: number; marco: number }>({
     digital: selectedPhotos.length || 0,
     fisica: 0,

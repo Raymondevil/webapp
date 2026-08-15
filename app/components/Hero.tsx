@@ -4,25 +4,14 @@ interface HeroProps {
   onOpenCotizador: () => void
   onOpenGaleria: () => void
   onOpenSeleccionar: () => void
-  onOpenVideo?: () => void
 }
 
 export const Hero: React.FC<HeroProps> = ({
   onOpenCotizador,
   onOpenGaleria,
-  onOpenSeleccionar,
-  onOpenVideo
+  onOpenSeleccionar
 }) => {
   const LOCAL_LOGO_URL = '/static/logo.jpg'
-
-  const handleGoToVideo = () => {
-    if (onOpenVideo) {
-      onOpenVideo()
-    } else {
-      const el = document.getElementById('video-trailer')
-      el?.scrollIntoView({ behavior: 'smooth' })
-    }
-  }
 
   return (
     <section id="inicio" className="relative overflow-hidden pt-12 pb-20 md:py-24">
@@ -52,33 +41,22 @@ export const Hero: React.FC<HeroProps> = ({
             </p>
 
             {/* ACTION BUTTONS */}
-            <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center lg:justify-start gap-3 pt-4">
+            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-4">
               <a
                 href="#cotizador"
                 onClick={onOpenCotizador}
-                className="w-full sm:w-auto bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-base px-7 py-3.5 rounded-2xl shadow-xl shadow-amber-500/20 hover:shadow-amber-500/40 transition-all flex items-center justify-center gap-3 group transform hover:-translate-y-0.5 cursor-pointer"
+                className="w-full sm:w-auto bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-base px-8 py-4 rounded-2xl shadow-xl shadow-amber-500/20 hover:shadow-amber-500/40 transition-all flex items-center justify-center gap-3 group transform hover:-translate-y-0.5 cursor-pointer"
               >
-                <i className="fa-solid fa-film text-lg"></i>
-                <span>Apartar Video ($600)</span>
-                <i className="fa-solid fa-arrow-right group-hover:translate-x-1 transition-transform text-sm"></i>
-              </a>
-
-              <a
-                href="#video-trailer"
-                onClick={handleGoToVideo}
-                className="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 text-amber-300 border border-amber-500/50 font-bold text-base px-6 py-3.5 rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 group cursor-pointer"
-              >
-                <div className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-400 group-hover:scale-110 transition-transform">
-                  <i className="fa-solid fa-play text-xs pl-0.5"></i>
-                </div>
-                <span>Ver Tráiler Video</span>
+                <i className="fa-solid fa-film text-xl"></i>
+                <span>Apartar Paquete de Video ($600)</span>
+                <i className="fa-solid fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
               </a>
 
               <button
                 onClick={onOpenSeleccionar}
-                className="w-full sm:w-auto bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold text-sm px-5 py-3.5 rounded-2xl transition-all flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full sm:w-auto bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold text-base px-6 py-4 rounded-2xl transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
-                <i className="fa-solid fa-square-check text-base"></i>
+                <i className="fa-solid fa-square-check text-lg"></i>
                 <span>Elegir Fotos ($50 c/u)</span>
               </button>
             </div>
@@ -106,27 +84,16 @@ export const Hero: React.FC<HeroProps> = ({
           <div className="lg:col-span-5 relative">
             <div className="relative mx-auto max-w-md lg:max-w-none rounded-3xl p-1 bg-gradient-to-b from-amber-500/40 via-amber-900/20 to-slate-900 shadow-2xl hero-card-glow overflow-hidden">
               <div className="bg-slate-900/90 backdrop-blur-xl rounded-[23px] p-6 space-y-6">
-                <div
-                  onClick={handleGoToVideo}
-                  className="relative aspect-video rounded-2xl overflow-hidden shadow-lg border border-amber-500/30 group cursor-pointer"
-                >
+                <div className="relative aspect-video rounded-2xl overflow-hidden shadow-lg border border-amber-500/30 group">
                   <img
                     src={LOCAL_LOGO_URL}
                     alt="San Pedro Lagunillas Fiestas Patrias"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/30 to-transparent" />
-                  
-                  {/* PLAY BUTTON OVERLAY */}
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-16 h-16 rounded-full bg-amber-500/90 text-slate-950 flex items-center justify-center text-2xl pl-1 shadow-2xl shadow-amber-500/60 group-hover:scale-110 group-hover:bg-amber-400 transition-all">
-                      <i className="fa-solid fa-play"></i>
-                    </div>
-                  </div>
-
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-80" />
                   <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white">
-                    <span className="bg-amber-500 text-slate-950 font-black text-xs px-2.5 py-1 rounded-md uppercase flex items-center gap-1">
-                      <i className="fa-solid fa-video"></i> Ver Video Muestra
+                    <span className="bg-amber-500 text-slate-950 font-black text-xs px-2.5 py-1 rounded-md uppercase">
+                      San Pedro Lagunillas
                     </span>
                     <span className="text-xs font-semibold text-slate-200 bg-slate-950/80 px-2 py-1 rounded-md backdrop-blur-sm">
                       <i className="fa-solid fa-camera-retro text-amber-400 mr-1"></i> "El Tigre"

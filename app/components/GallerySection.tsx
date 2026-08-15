@@ -17,7 +17,6 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
   const [currentFilter, setCurrentFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [dorsalFilter, setDorsalFilter] = useState<string>('')
-  const [visibleCount, setVisibleCount] = useState<number>(18)
 
   const categories = [
     { key: 'all', label: 'Todos' },
@@ -50,8 +49,6 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
     return true
   })
 
-  const visibleItems = filteredItems.slice(0, visibleCount)
-
   return (
     <section id="galeria" className="py-16 bg-slate-950 relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
@@ -76,10 +73,7 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
                 <input
                   type="text"
                   value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value)
-                    setVisibleCount(18)
-                  }}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Buscar por título o descripción..."
                   className="w-full bg-slate-950 border border-slate-800 focus:border-amber-400 rounded-xl px-4 py-2.5 pl-10 text-xs text-white placeholder-slate-500 focus:outline-none"
                 />
@@ -89,10 +83,7 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
                 <input
                   type="text"
                   value={dorsalFilter}
-                  onChange={(e) => {
-                    setDorsalFilter(e.target.value)
-                    setVisibleCount(18)
-                  }}
+                  onChange={(e) => setDorsalFilter(e.target.value)}
                   placeholder="Dorsal (#12, #45)..."
                   className="w-full bg-slate-950 border border-slate-800 focus:border-amber-400 rounded-xl px-4 py-2.5 pl-9 text-xs text-amber-400 font-bold placeholder-slate-500 focus:outline-none"
                 />
@@ -114,10 +105,7 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
             {categories.map((cat) => (
               <button
                 key={cat.key}
-                onClick={() => {
-                  setCurrentFilter(cat.key)
-                  setVisibleCount(18)
-                }}
+                onClick={() => setCurrentFilter(cat.key)}
                 className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                   currentFilter === cat.key
                     ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20'
@@ -142,99 +130,70 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
             </p>
           </div>
         ) : (
-          <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {visibleItems.map((item) => (
-                <div
-                  key={item.id}
-                  className="bg-slate-900 border border-slate-800 hover:border-amber-500/50 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 shadow-xl flex flex-col justify-between group"
-                >
-                  <div>
-                    {/* IMAGE THUMBNAIL */}
-                    <div
-                      onClick={() => onOpenLightbox(item)}
-                      className="relative aspect-[4/3] bg-slate-950 overflow-hidden cursor-pointer"
-                    >
-                      <img
-                        src={item.url}
-                        alt={item.title}
-                        loading="lazy"
-                        decoding="async"
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                      {item.type === 'video' && (
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                          <div className="w-14 h-14 rounded-full bg-amber-500/90 text-slate-950 flex items-center justify-center text-xl pl-0.5 shadow-2xl shadow-amber-500/50 group-hover:scale-110 group-hover:bg-amber-400 transition-all">
-                            <i className="fa-solid fa-play"></i>
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                        <span className="bg-amber-500 text-slate-950 font-bold text-xs px-3 py-1.5 rounded-xl shadow-lg flex items-center gap-1.5">
-                          <i className={`fa-solid ${item.type === 'video' ? 'fa-play' : 'fa-expand'}`}></i>
-                          {item.type === 'video' ? 'Ver Video' : 'Ampliar'}
-                        </span>
-                      </div>
-
-                      {item.type === 'video' ? (
-                        <span className="absolute top-3 left-3 bg-red-600 text-white font-black text-[10px] px-2.5 py-1 rounded-md shadow-md flex items-center gap-1">
-                          <i className="fa-solid fa-video"></i> VIDEO HD
-                        </span>
-                      ) : item.dorsal ? (
-                        <span className="absolute top-3 left-3 bg-amber-500 text-slate-950 font-black text-xs px-2.5 py-1 rounded-md shadow-md">
-                          #{item.dorsal}
-                        </span>
-                      ) : null}
-
-                      <span className="absolute bottom-3 right-3 bg-slate-950/90 text-amber-400 text-[10px] font-bold px-2 py-1 rounded border border-slate-800">
-                        {item.date}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredItems.map((item) => (
+              <div
+                key={item.id}
+                className="bg-slate-900 border border-slate-800 hover:border-amber-500/50 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 shadow-xl flex flex-col justify-between group"
+              >
+                <div>
+                  {/* IMAGE THUMBNAIL */}
+                  <div
+                    onClick={() => onOpenLightbox(item)}
+                    className="relative aspect-[4/3] bg-slate-950 overflow-hidden cursor-pointer"
+                  >
+                    <img
+                      src={item.url}
+                      alt={item.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                      <span className="bg-amber-500 text-slate-950 font-bold text-xs px-3 py-1.5 rounded-xl shadow-lg">
+                        <i className="fa-solid fa-expand mr-1"></i> Ampliar
                       </span>
                     </div>
 
-                    {/* ITEM CONTENT */}
-                    <div className="p-5 space-y-3">
-                      <h3
-                        onClick={() => onOpenLightbox(item)}
-                        className="font-serif font-black text-base text-white group-hover:text-amber-300 transition-colors cursor-pointer line-clamp-2"
-                      >
-                        {item.title}
-                      </h3>
-                      <p className="text-slate-300 text-xs line-clamp-2 leading-relaxed">
-                        {item.description}
-                      </p>
-                    </div>
+                    {item.dorsal && (
+                      <span className="absolute top-3 left-3 bg-amber-500 text-slate-950 font-black text-xs px-2.5 py-1 rounded-md shadow-md">
+                        #{item.dorsal}
+                      </span>
+                    )}
+
+                    <span className="absolute bottom-3 right-3 bg-slate-950/90 text-amber-400 text-[10px] font-bold px-2 py-1 rounded border border-slate-800">
+                      {item.date}
+                    </span>
                   </div>
 
-                  {/* BOTTOM CARD ACTION */}
-                  <div className="p-5 pt-0 flex items-center justify-between border-t border-slate-800/80 mt-2">
-                    <div>
-                      <span className="text-xs text-slate-400 block">Precio:</span>
-                      <span className="font-serif font-black text-lg text-amber-400">${item.price} MXN</span>
-                    </div>
-                    <button
-                      onClick={() => onAddPhotoToOrder(item)}
-                      className="bg-amber-500/10 hover:bg-amber-500 text-amber-300 hover:text-slate-950 border border-amber-500/40 font-bold text-xs px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
+                  {/* ITEM CONTENT */}
+                  <div className="p-5 space-y-3">
+                    <h3
+                      onClick={() => onOpenLightbox(item)}
+                      className="font-serif font-black text-base text-white group-hover:text-amber-300 transition-colors cursor-pointer line-clamp-2"
                     >
-                      <i className="fa-solid fa-plus"></i> Agregar
-                    </button>
+                      {item.title}
+                    </h3>
+                    <p className="text-slate-300 text-xs line-clamp-2 leading-relaxed">
+                      {item.description}
+                    </p>
                   </div>
                 </div>
-              ))}
-            </div>
 
-            {/* LOAD MORE BUTTON */}
-            {visibleCount < filteredItems.length && (
-              <div className="text-center pt-8">
-                <button
-                  onClick={() => setVisibleCount((prev) => prev + 18)}
-                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-sm px-8 py-3.5 rounded-2xl shadow-xl shadow-amber-500/20 transition-all cursor-pointer inline-flex items-center gap-2"
-                >
-                  <i className="fa-solid fa-circle-plus"></i> Cargar más fotografías ({filteredItems.length - visibleCount} restantes)
-                </button>
+                {/* BOTTOM CARD ACTION */}
+                <div className="p-5 pt-0 flex items-center justify-between border-t border-slate-800/80 mt-2">
+                  <div>
+                    <span className="text-xs text-slate-400 block">Precio:</span>
+                    <span className="font-serif font-black text-lg text-amber-400">${item.price} MXN</span>
+                  </div>
+                  <button
+                    onClick={() => onAddPhotoToOrder(item)}
+                    className="bg-amber-500/10 hover:bg-amber-500 text-amber-300 hover:text-slate-950 border border-amber-500/40 font-bold text-xs px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <i className="fa-solid fa-plus"></i> Agregar
+                  </button>
+                </div>
               </div>
-            )}
-          </>
+            ))}
+          </div>
         )}
       </div>
     </section>

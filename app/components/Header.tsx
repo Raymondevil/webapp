@@ -71,9 +71,6 @@ export const Header: React.FC<HeaderProps> = ({
             >
               Inicio
             </button>
-            <a href="#video-trailer" onClick={() => setActiveTab('main')} className="hover:text-amber-400 transition-colors py-1 flex items-center gap-1 text-amber-300 font-semibold">
-              <i className="fa-solid fa-play text-[10px]"></i> Video
-            </a>
             <a href="#programa" onClick={() => setActiveTab('main')} className="hover:text-amber-400 transition-colors py-1">
               Programa
             </a>
@@ -144,13 +141,6 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <i className="fa-solid fa-house mr-2"></i> Inicio
             </button>
-            <a
-              href="#video-trailer"
-              onClick={() => { setActiveTab('main'); setMobileMenuOpen(false) }}
-              className="block py-2 font-bold text-amber-300 hover:text-amber-400"
-            >
-              <i className="fa-solid fa-play mr-2"></i> Ver Video / Tráiler
-            </a>
             <a
               href="#programa"
               onClick={() => { setActiveTab('main'); setMobileMenuOpen(false) }}
