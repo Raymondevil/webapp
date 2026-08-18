@@ -1,23 +1,23 @@
 {
-	"$schema": "./node_modules/wrangler/config-schema.json",
-	"name": "webapp",
-	"main": "./workers/app.ts",
-	"compatibility_date": "2025-10-08",
-	"compatibility_flags": [
-		"nodejs_compat"
-	],
-	"observability": {
-		"enabled": true
-	},
-	"upload_source_maps": true,
-	"vars": {
-		"VALUE_FROM_CLOUDFLARE": "Hello from Cloudflare"
-	},
-	"d1_databases": [
-		{
-			"binding": "serve",
-			"database_name": "serve",
-			"database_id": "66c2af66-e489-4bd5-ad8b-6eddb86c9f93"
-		}
-	]
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "webapp",
+  "main": "./workers/app.ts",
+  "compatibility_date": "2025-10-08",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "observability": {
+    "enabled": true
+  },
+  "upload_source_maps": true,
+  "vars": {
+    "VALUE_FROM_CLOUDFLARE": "Hello from Cloudflare"
+  },
+  "d1_databases": [
+    {
+      "binding": "fotos",
+      "database_name": "fotos",
+      "database_id": "66b19550-28f5-472f-a60f-e794020b1cec"
+    }
+  ]
 }
