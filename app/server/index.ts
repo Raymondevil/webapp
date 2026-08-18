@@ -20,7 +20,7 @@ let tablesInitialized = false
 
 // D1 Helper utilities
 function getD1(c: any) {
-  return c.env?.serve || c.env?.DB || null
+  return c.env?.fotos || c.env?.serve || c.env?.DB || null
 }
 
 async function ensureTables(db: any) {
