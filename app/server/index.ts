@@ -6,6 +6,10 @@ import type { GalleryItem, Order, ContactMessage } from '../types'
 type Bindings = {
   serve?: any
   DB?: any
+  fotos?: any
+  MEDIA?: any
+  ADMIN_PASSWORD?: string
+  ADMIN_TOKEN?: string
 }
 
 export const app = new Hono<{ Bindings: Bindings }>()
@@ -22,6 +26,33 @@ let tablesInitialized = false
 function getD1(c: any) {
   return c.env?.fotos || c.env?.serve || c.env?.DB || null
 }
+
+function isAdmin(c: any) {
+  const authHeader = c.req.header('Authorization')
+  const token = authHeader ? authHeader.replace(/^Bearer\s+/i, '') : ''
+  const expectedToken = c.env?.ADMIN_TOKEN || 'admin-secret-token-eltigre'
+  return token === expectedToken
+}
+
+function mediaIdIsSafe(id: string) {
+  return /^m-[0-9a-f-]{36}$/i.test(id)
+}
+
+async function hashCode(code: string) {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(code))
+  return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
+const mediaTypes = new Set([
+  'image/avif', 'image/gif', 'image/jpeg', 'image/png', 'image/webp',
+  'video/mp4', 'video/quicktime', 'video/webm'
+])
+const mediaExtensions: Record<string, string> = {
+  'image/avif': 'avif', 'image/gif': 'gif', 'image/jpeg': 'jpg',
+  'image/png': 'png', 'image/webp': 'webp', 'video/mp4': 'mp4',
+  'video/quicktime': 'mov', 'video/webm': 'webm'
+}
+const maxMediaSize = 100 * 1024 * 1024
 
 async function ensureTables(db: any) {
   if (!db || tablesInitialized) return
@@ -206,20 +237,121 @@ app.post('/api/admin/login', async (c) => {
   }
 })
 
+// POST /api/media/upload - Private original plus public low-resolution preview.
+app.post('/api/media/upload', async (c) => {
+  if (!isAdmin(c)) return c.json({ success: false, error: 'Acceso no autorizado' }, 401)
+
+  const media = c.env?.MEDIA
+  if (!media) return c.json({ success: false, error: 'Almacenamiento de medios no configurado' }, 503)
+
+  try {
+    const formData = await c.req.raw.formData()
+    const file = formData.get('file')
+    const downloadCode = String(formData.get('downloadCode') || '').trim()
+    if (!file || typeof (file as any).arrayBuffer !== 'function') {
+      return c.json({ success: false, error: 'Selecciona un archivo válido' }, 400)
+    }
+
+    const uploadedFile = file as File
+    if (!mediaTypes.has(uploadedFile.type)) {
+      return c.json({ success: false, error: 'Formato no permitido. Usa JPG, PNG, WebP, AVIF, GIF, MP4, MOV o WebM.' }, 400)
+    }
+    if (uploadedFile.size === 0 || uploadedFile.size > maxMediaSize) {
+      return c.json({ success: false, error: 'El archivo debe pesar entre 1 byte y 100 MB.' }, 400)
+    }
+    if (downloadCode.length < 8 || downloadCode.length > 64) {
+      return c.json({ success: false, error: 'El código de descarga debe tener entre 8 y 64 caracteres.' }, 400)
+    }
+
+    const mediaId = `m-${crypto.randomUUID()}`
+    const originalKey = `private/${mediaId}.${mediaExtensions[uploadedFile.type]}`
+    let previewUrl = '/favicon.svg'
+    if (uploadedFile.type.startsWith('image/')) {
+      const preview = formData.get('preview')
+      if (!preview || typeof (preview as any).arrayBuffer !== 'function') {
+        return c.json({ success: false, error: 'No se pudo crear la vista previa de la foto.' }, 400)
+      }
+      const previewFile = preview as File
+      if (!previewFile.type.startsWith('image/') || previewFile.size === 0 || previewFile.size > 5 * 1024 * 1024) {
+        return c.json({ success: false, error: 'La vista previa no es válida.' }, 400)
+      }
+      const previewKey = `previews/${mediaId}.webp`
+      await media.put(previewKey, await previewFile.arrayBuffer(), {
+        httpMetadata: { contentType: previewFile.type, cacheControl: 'public, max-age=31536000, immutable' }
+      })
+      previewUrl = `/media/${previewKey}`
+    }
+
+    await media.put(originalKey, await uploadedFile.arrayBuffer(), {
+      httpMetadata: {
+        contentType: uploadedFile.type,
+        contentDisposition: `attachment; filename="${uploadedFile.name.replace(/["\\\\]/g, '_').slice(0, 160)}"`
+      },
+      customMetadata: { originalName: uploadedFile.name.slice(0, 180) }
+    })
+    await media.put(`access/${mediaId}.json`, JSON.stringify({ originalKey, codeHash: await hashCode(downloadCode) }), {
+      httpMetadata: { contentType: 'application/json' }
+    })
+    return c.json({ success: true, mediaId, url: previewUrl })
+  } catch (error) {
+    console.error('Error uploading media:', error)
+    return c.json({ success: false, error: 'No se pudo subir el archivo.' }, 500)
+  }
+})
+
+// GET /media/previews/... - Only previews are publicly readable.
+app.on(['GET', 'HEAD'], '/media/*', async (c) => {
+  const key = decodeURIComponent(new URL(c.req.url).pathname.replace(/^\/media\//, ''))
+  if (!/^previews\/m-[0-9a-f-]{36}\.webp$/i.test(key)) return c.text('Archivo no válido', 400)
+
+  const media = c.env?.MEDIA
+  if (!media) return c.text('Almacenamiento no disponible', 503)
+  const object = await media.get(key)
+  if (!object) return c.text('Archivo no encontrado', 404)
+
+  const headers = new Headers()
+  object.writeHttpMetadata(headers)
+  headers.set('etag', object.httpEtag)
+  headers.set('x-content-type-options', 'nosniff')
+  return new Response(c.req.method === 'HEAD' ? null : object.body, { headers })
+})
+
+app.get('/api/media/download/:id', async (c) => {
+  const mediaId = c.req.param('id')
+  const code = c.req.query('code')?.trim() || ''
+  if (!mediaIdIsSafe(mediaId) || !code) return c.json({ success: false, error: 'Código de descarga inválido.' }, 401)
+  const media = c.env?.MEDIA
+  if (!media) return c.json({ success: false, error: 'Almacenamiento no disponible.' }, 503)
+  const access = await media.get(`access/${mediaId}.json`)
+  if (!access) return c.json({ success: false, error: 'Archivo no encontrado.' }, 404)
+  try {
+    const details = await access.json<{ originalKey: string; codeHash: string }>()
+    if (details.codeHash !== await hashCode(code)) return c.json({ success: false, error: 'Código de descarga incorrecto.' }, 401)
+    const object = await media.get(details.originalKey)
+    if (!object) return c.json({ success: false, error: 'Archivo no encontrado.' }, 404)
+    const headers = new Headers()
+    object.writeHttpMetadata(headers)
+    headers.set('etag', object.httpEtag)
+    headers.set('cache-control', 'private, no-store')
+    headers.set('x-content-type-options', 'nosniff')
+    headers.set('content-disposition', object.httpMetadata?.contentDisposition || 'attachment')
+    return new Response(object.body, { headers })
+  } catch (error) {
+    console.error('Error reading protected media:', error)
+    return c.json({ success: false, error: 'No se pudo leer el archivo.' }, 500)
+  }
+})
+
 // POST /api/gallery/register
 app.post('/api/gallery/register', async (c) => {
   try {
-    const authHeader = c.req.header('Authorization')
-    const token = authHeader ? authHeader.replace(/^Bearer\s+/i, '') : null
-    const validToken = 'admin-secret-token-eltigre'
-
-    if (token !== validToken && token !== 'admin-secret-token') {
+    if (!isAdmin(c)) {
       return c.json({ success: false, error: 'Acceso no autorizado' }, 401)
     }
 
     const body = await c.req.json()
     const newItem: GalleryItem = {
-      id: 'g-' + Date.now(),
+      id: typeof body.id === 'string' && mediaIdIsSafe(body.id) ? body.id : 'g-' + Date.now(),
       title: body.title,
       category: body.category || 'topaderas',
       date: body.date || '16 de Septiembre',
@@ -423,4 +555,3 @@ app.post('/api/contact', async (c) => {
 })
 
 export default app
-

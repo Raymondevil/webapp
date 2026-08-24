@@ -19,5 +19,11 @@
       "database_name": "fotos",
       "database_id": "66b19550-28f5-472f-a60f-e794020b1cec"
     }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "MEDIA",
+      "bucket_name": "fotoseltigre-media"
+    }
   ]
 }

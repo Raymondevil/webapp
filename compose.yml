@@ -1,0 +1,23 @@
+services:
+  fotoseltigre:
+    build:
+      context: .
+    image: fotoseltigre:latest
+    container_name: fotoseltigre
+    restart: unless-stopped
+    ports:
+      # No public host exposure: the Cloudflare Tunnel is the public gateway.
+      - "127.0.0.1:8080:8080"
+    networks:
+      - tunnel
+    volumes:
+      # Persist local D1/R2 data across container updates and rebuilds.
+      - fotoseltigre-data:/app/.wrangler
+
+networks:
+  tunnel:
+    name: fotoseltigre-tunnel
+
+volumes:
+  fotoseltigre-data:
+    name: fotoseltigre-data

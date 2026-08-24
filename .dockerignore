@@ -1,0 +1,12 @@
+.git
+.agents
+.codex
+node_modules
+.wrangler
+build
+dist
+npm-debug.log*
+.env
+.env.*
+Dockerfile*
+docker-compose*.yml

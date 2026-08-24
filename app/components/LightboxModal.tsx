@@ -13,6 +13,12 @@ export const LightboxModal: React.FC<LightboxModalProps> = ({
   onAddPhotoToOrder
 }) => {
   if (!photo) return null
+  const isProtectedUpload = photo.id.startsWith('m-')
+  const downloadPhoto = () => {
+    if (!isProtectedUpload) { window.location.href = photo.url; return }
+    const code = window.prompt('Escribe el código de descarga que te entregó Fotografías El Tigre:')
+    if (code?.trim()) window.location.href = `/api/media/download/${encodeURIComponent(photo.id)}?code=${encodeURIComponent(code.trim())}`
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md animate-fadeIn">
@@ -27,13 +33,15 @@ export const LightboxModal: React.FC<LightboxModalProps> = ({
 
         {/* IMAGE / VIDEO MEDIA CONTAINER */}
         <div className="md:w-3/5 bg-slate-950 flex items-center justify-center p-4 relative min-h-[300px]">
-          {photo.type === 'video' ? (
+          {photo.type === 'video' && !isProtectedUpload ? (
             <video
               src={photo.videoUrl || photo.url}
               controls
               autoPlay
               className="max-h-[60vh] w-full object-contain rounded-xl"
             />
+          ) : photo.type === 'video' ? (
+            <div className="text-center text-slate-300 text-sm space-y-2"><i className="fa-solid fa-lock text-3xl text-amber-400"></i><p>Video protegido. Ingresa tu código para descargarlo.</p></div>
           ) : (
             <img
               src={photo.url}
@@ -85,6 +93,12 @@ export const LightboxModal: React.FC<LightboxModalProps> = ({
               className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-3.5 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
               <i className="fa-solid fa-plus-circle"></i> Agregar a mi Pedido (${photo.price})
+            </button>
+            <button
+              onClick={downloadPhoto}
+              className="w-full bg-sky-500/10 hover:bg-sky-500/20 text-sky-300 border border-sky-500/30 font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 text-xs cursor-pointer"
+            >
+              <i className="fa-solid fa-download text-sm"></i> {isProtectedUpload ? 'Descargar con código' : 'Descargar archivo'}
             </button>
             <a
               href={`https://wa.me/523118470860?text=${encodeURIComponent(`Hola! Me interesa pedir la foto/video "${photo.title}" (ID: ${photo.id}, Dorsal: ${photo.dorsal || 'N/A'})`)}`}

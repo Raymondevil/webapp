@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import axios from 'axios'
 import type { GalleryItem, Order } from '../types'
 
@@ -29,8 +29,12 @@ export const AdminSection: React.FC<AdminSectionProps> = ({
   const [newDescription, setNewDescription] = useState('')
   const [newPrice, setNewPrice] = useState(50)
   const [newDorsal, setNewDorsal] = useState('')
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [downloadCode, setDownloadCode] = useState('')
   const [uploadMessage, setUploadMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [isUploading, setIsUploading] = useState(false)
+  const photoInputRef = useRef<HTMLInputElement>(null)
+  const videoInputRef = useRef<HTMLInputElement>(null)
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -59,8 +63,8 @@ export const AdminSection: React.FC<AdminSectionProps> = ({
 
   const handleCreateGalleryItem = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newTitle.trim() || !newUrl.trim()) {
-      setUploadMessage({ type: 'error', text: 'El título y la URL son obligatorios.' })
+    if (!newTitle.trim() || (!selectedFile && !newUrl.trim())) {
+      setUploadMessage({ type: 'error', text: 'El título y un archivo o URL son obligatorios.' })
       return
     }
 
@@ -68,15 +72,34 @@ export const AdminSection: React.FC<AdminSectionProps> = ({
     setUploadMessage(null)
 
     try {
+      let mediaUrl = newUrl.trim()
+      let mediaId: string | undefined
+      if (selectedFile) {
+        if (downloadCode.trim().length < 8) throw new Error('Genera o escribe un código de descarga de al menos 8 caracteres.')
+        const fileData = new FormData()
+        fileData.append('file', selectedFile)
+        fileData.append('downloadCode', downloadCode.trim())
+        if (selectedFile.type.startsWith('image/')) fileData.append('preview', await createPreview(selectedFile))
+        const uploadRes = await axios.post('/api/media/upload', fileData, {
+          headers: { Authorization: `Bearer ${authToken}` }
+        })
+        if (!uploadRes.data?.success || !uploadRes.data.url) {
+          throw new Error(uploadRes.data?.error || 'No se pudo subir el archivo.')
+        }
+        mediaUrl = uploadRes.data.url
+        mediaId = uploadRes.data.mediaId
+      }
+
       const res = await axios.post(
         '/api/gallery/register',
         {
           title: newTitle,
+          id: mediaId,
           category: newCategory,
           date: newDate,
           type: newType,
-          url: newUrl,
-          videoUrl: newType === 'video' ? newUrl : undefined,
+          url: mediaUrl,
+          videoUrl: newType === 'video' ? mediaUrl : undefined,
           description: newDescription,
           price: Number(newPrice),
           dorsal: newDorsal
@@ -89,9 +112,10 @@ export const AdminSection: React.FC<AdminSectionProps> = ({
       )
 
       if (res.data && res.data.success) {
-        setUploadMessage({ type: 'success', text: '¡Fotografía/Video registrado en el catálogo!' })
+        setUploadMessage({ type: 'success', text: selectedFile ? `¡Archivo protegido y registrado! Código: ${downloadCode}` : '¡Fotografía/Video registrado en el catálogo!' })
         setNewTitle('')
         setNewUrl('')
+        setSelectedFile(null)
         setNewDescription('')
         setNewDorsal('')
         onRefreshData()
@@ -100,10 +124,40 @@ export const AdminSection: React.FC<AdminSectionProps> = ({
       }
     } catch (err: any) {
       console.error('Create item error:', err)
-      setUploadMessage({ type: 'error', text: 'Error de servidor al guardar foto.' })
+      setUploadMessage({ type: 'error', text: err.response?.data?.error || err.message || 'Error de servidor al guardar foto.' })
     } finally {
       setIsUploading(false)
     }
+  }
+
+  const selectFile = (file: File | undefined, type: 'photo' | 'video') => {
+    if (!file) return
+    setSelectedFile(file)
+    setNewType(type)
+    setNewUrl('')
+    setUploadMessage(null)
+  }
+
+  const generateDownloadCode = () => {
+    const bytes = new Uint32Array(2)
+    crypto.getRandomValues(bytes)
+    setDownloadCode(`TIGRE-${bytes[0].toString(36).toUpperCase()}${bytes[1].toString(36).toUpperCase()}`)
+  }
+
+  const createPreview = async (file: File): Promise<File> => {
+    const source = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const image = new Image(); const objectUrl = URL.createObjectURL(file)
+      image.onload = () => { URL.revokeObjectURL(objectUrl); resolve(image) }
+      image.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error('No se pudo leer la foto.')) }
+      image.src = objectUrl
+    })
+    const scale = Math.min(1, 1400 / Math.max(source.naturalWidth, source.naturalHeight))
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.max(1, Math.round(source.naturalWidth * scale)); canvas.height = Math.max(1, Math.round(source.naturalHeight * scale))
+    canvas.getContext('2d')?.drawImage(source, 0, 0, canvas.width, canvas.height)
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/webp', 0.8))
+    if (!blob) throw new Error('No se pudo crear la vista previa.')
+    return new File([blob], 'vista-previa.webp', { type: 'image/webp' })
   }
 
   if (!authToken) {
@@ -344,14 +398,51 @@ export const AdminSection: React.FC<AdminSectionProps> = ({
               </div>
             </div>
 
+            <div className="space-y-3">
+              <label className="block text-xs font-bold text-slate-300">Archivo desde celular o computadora</label>
+              <input
+                ref={photoInputRef}
+                type="file"
+                accept="image/avif,image/gif,image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={(e) => selectFile(e.target.files?.[0], 'photo')}
+              />
+              <input
+                ref={videoInputRef}
+                type="file"
+                accept="video/mp4,video/quicktime,video/webm"
+                className="hidden"
+                onChange={(e) => selectFile(e.target.files?.[0], 'video')}
+              />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button type="button" onClick={() => photoInputRef.current?.click()} className="bg-sky-500/10 hover:bg-sky-500/20 text-sky-300 border border-sky-500/30 font-bold py-3 rounded-xl text-xs transition-all">
+                  <i className="fa-solid fa-image mr-2"></i>Explorar fotos
+                </button>
+                <button type="button" onClick={() => videoInputRef.current?.click()} className="bg-violet-500/10 hover:bg-violet-500/20 text-violet-300 border border-violet-500/30 font-bold py-3 rounded-xl text-xs transition-all">
+                  <i className="fa-solid fa-video mr-2"></i>Explorar videos
+                </button>
+              </div>
+              {selectedFile && <p className="text-xs text-emerald-300 font-semibold truncate">Archivo seleccionado: {selectedFile.name}</p>}
+            </div>
+
+            {selectedFile && (
+              <div className="space-y-2 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
+                <label className="block text-xs font-bold text-amber-200">Código individual para descargar *</label>
+                <div className="flex gap-2">
+                  <input value={downloadCode} onChange={(e) => setDownloadCode(e.target.value)} placeholder="Código que entregarás al cliente" className="min-w-0 flex-1 bg-slate-950 border border-slate-800 focus:border-amber-400 rounded-xl px-3 py-2.5 text-xs text-white" />
+                  <button type="button" onClick={generateDownloadCode} className="shrink-0 border border-amber-500/40 text-amber-300 hover:bg-amber-500 hover:text-slate-950 rounded-xl px-3 text-xs font-bold">Generar</button>
+                </div>
+                <p className="text-[11px] text-slate-400">Guárdalo y compártelo sólo tras el pago; el servidor guarda únicamente una huella segura.</p>
+              </div>
+            )}
+
             <div>
-              <label className="block text-xs font-bold text-slate-300 mb-1">URL de Imagen/Video *</label>
+              <label className="block text-xs font-bold text-slate-300 mb-1">URL de Imagen/Video (opcional)</label>
               <input
                 type="text"
-                required
                 value={newUrl}
                 onChange={(e) => setNewUrl(e.target.value)}
-                placeholder="/static/photos/mifoto.webp o URL externa..."
+                placeholder="Úsala sólo si el archivo ya está publicado..."
                 className="w-full bg-slate-950 border border-slate-800 focus:border-amber-400 rounded-xl px-4 py-2.5 text-xs text-white"
               />
             </div>
@@ -384,7 +475,7 @@ export const AdminSection: React.FC<AdminSectionProps> = ({
               disabled={isUploading}
               className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-3.5 rounded-xl shadow-lg transition-all text-xs cursor-pointer disabled:opacity-50"
             >
-              {isUploading ? 'Guardando...' : 'Agregar Elemento al Catálogo'}
+              {isUploading ? 'Subiendo y guardando...' : 'Agregar Elemento al Catálogo'}
             </button>
           </form>
         </div>
