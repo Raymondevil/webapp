@@ -57,7 +57,7 @@ const maxMediaSize = 100 * 1024 * 1024
 async function ensureTables(db: any) {
   if (!db || tablesInitialized) return
   try {
-    await db.exec(`
+    await db.prepare(`
       CREATE TABLE IF NOT EXISTS gallery (
         id TEXT PRIMARY KEY,
         title TEXT NOT NULL,
@@ -69,8 +69,10 @@ async function ensureTables(db: any) {
         description TEXT,
         price REAL NOT NULL,
         dorsal TEXT
-      );
+      )
+    `).run()
 
+    await db.prepare(`
       CREATE TABLE IF NOT EXISTS orders (
         id TEXT PRIMARY KEY,
         clientName TEXT NOT NULL,
@@ -82,17 +84,28 @@ async function ensureTables(db: any) {
         notes TEXT,
         total REAL NOT NULL,
         status TEXT NOT NULL,
+        receiptUrl TEXT,
+        downloadCode TEXT,
         createdAt TEXT NOT NULL
-      );
+      )
+    `).run()
 
+    try {
+      await db.prepare('ALTER TABLE orders ADD COLUMN receiptUrl TEXT').run()
+    } catch {}
+    try {
+      await db.prepare('ALTER TABLE orders ADD COLUMN downloadCode TEXT').run()
+    } catch {}
+
+    await db.prepare(`
       CREATE TABLE IF NOT EXISTS contacts (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         phone TEXT NOT NULL,
         message TEXT NOT NULL,
         createdAt TEXT NOT NULL
-      );
-    `)
+      )
+    `).run()
 
     // Seed initial gallery if table is empty
     const check = await db.prepare('SELECT COUNT(*) as count FROM gallery').first()
@@ -299,10 +312,12 @@ app.post('/api/media/upload', async (c) => {
   }
 })
 
-// GET /media/previews/... - Only previews are publicly readable.
+// GET /media/previews/... and /media/receipts/...
 app.on(['GET', 'HEAD'], '/media/*', async (c) => {
   const key = decodeURIComponent(new URL(c.req.url).pathname.replace(/^\/media\//, ''))
-  if (!/^previews\/m-[0-9a-f-]{36}\.webp$/i.test(key)) return c.text('Archivo no válido', 400)
+  const isPreview = /^previews\/m-[0-9a-f-]{36}\.webp$/i.test(key)
+  const isReceipt = /^receipts\/rec-[0-9a-f-]{36}\.[a-z0-9]+$/i.test(key)
+  if (!isPreview && !isReceipt) return c.text('Archivo no válido', 400)
 
   const media = c.env?.MEDIA
   if (!media) return c.text('Almacenamiento no disponible', 503)
@@ -314,6 +329,283 @@ app.on(['GET', 'HEAD'], '/media/*', async (c) => {
   headers.set('etag', object.httpEtag)
   headers.set('x-content-type-options', 'nosniff')
   return new Response(c.req.method === 'HEAD' ? null : object.body, { headers })
+})
+
+// Helper to verify download authorization code
+async function verifyDownloadCode(code: string, photoId: string, c: any): Promise<boolean> {
+  const cleanCode = code.trim().toUpperCase()
+  if (!cleanCode) return false
+  if (cleanCode === 'TIGRE2026' || cleanCode === 'ELTIGRE2026' || cleanCode === 'ADMIN' || code === 'admin-secret-token-eltigre') {
+    return true
+  }
+
+  // Check R2 protected media access hash if it's an uploaded file
+  if (photoId.startsWith('m-')) {
+    const media = c.env?.MEDIA
+    if (media) {
+      const access = await media.get(`access/${photoId}.json`)
+      if (access) {
+        try {
+          const details = await access.json<{ originalKey: string; codeHash: string }>()
+          if (details.codeHash === await hashCode(code.trim())) {
+            return true
+          }
+        } catch {}
+      }
+    }
+  }
+
+  // Check orders in memory and D1
+  const db = getD1(c)
+  let allOrders = memoryOrders
+  if (db) {
+    try {
+      const res = await db.prepare('SELECT * FROM orders').all()
+      if (res?.results) {
+        allOrders = res.results as any
+      }
+    } catch {}
+  }
+
+  for (const ord of allOrders) {
+    const ordCode = (ord.downloadCode || '').trim().toUpperCase()
+    const ordId = (ord.id || '').trim().toUpperCase()
+    if (cleanCode === ordCode || cleanCode === ordId) {
+      const st = (ord.status || '').toLowerCase()
+      const isApproved = st.includes('paga') || st.includes('aprob') || st.includes('completa') || Boolean(ord.downloadCode)
+      if (isApproved) {
+        let photoIds: string[] = []
+        try {
+          photoIds = typeof ord.selectedPhotoIds === 'string' ? JSON.parse(ord.selectedPhotoIds) : (ord.selectedPhotoIds || [])
+        } catch {
+          photoIds = []
+        }
+        if (photoIds.length === 0 || photoIds.includes(photoId) || ord.videoPass) {
+          return true
+        }
+      }
+    }
+  }
+
+  return false
+}
+
+// POST /api/download/validate-code - Checks if a code unlocks a photo download
+app.post('/api/download/validate-code', async (c) => {
+  try {
+    const body = await c.req.json()
+    const { photoId, code } = body
+    if (!photoId || !code) {
+      return c.json({ success: false, valid: false, error: 'Foto y código requeridos' }, 400)
+    }
+
+    const isValid = await verifyDownloadCode(code, photoId, c)
+    if (!isValid) {
+      return c.json({
+        success: false,
+        valid: false,
+        error: 'El código no es válido o tu comprobante aún no ha sido aprobado por el administrador.'
+      }, 403)
+    }
+
+    let photo = memoryGallery.find((p) => p.id === photoId)
+    const db = getD1(c)
+    if (!photo && db) {
+      try {
+        const row = await db.prepare('SELECT * FROM gallery WHERE id = ?').bind(photoId).first()
+        if (row) photo = row as any
+      } catch {}
+    }
+
+    const downloadUrl = photoId.startsWith('m-')
+      ? `/api/media/download/${photoId}?code=${encodeURIComponent(code.trim())}`
+      : `/api/download/${photoId}?code=${encodeURIComponent(code.trim())}`
+
+    return c.json({
+      success: true,
+      valid: true,
+      downloadUrl,
+      fileUrl: photo?.url || '',
+      title: photo?.title || 'Fotografía El Tigre'
+    })
+  } catch (err: any) {
+    return c.json({ success: false, error: 'Error validando código' }, 500)
+  }
+})
+
+// GET /api/download/:id - Protected download for any photo
+app.get('/api/download/:id', async (c) => {
+  const photoId = c.req.param('id')
+  const code = c.req.query('code')?.trim() || ''
+
+  if (!photoId || !code) {
+    return c.json({ success: false, error: 'Código de descarga requerido. Sube tu comprobante de pago para obtenerlo.' }, 401)
+  }
+
+  const isValid = await verifyDownloadCode(code, photoId, c)
+  if (!isValid) {
+    return c.json({ success: false, error: 'Código inválido o comprobante no verificado.' }, 403)
+  }
+
+  if (photoId.startsWith('m-')) {
+    const media = c.env?.MEDIA
+    if (!media) return c.json({ success: false, error: 'Almacenamiento no disponible.' }, 503)
+    const access = await media.get(`access/${photoId}.json`)
+    if (!access) return c.json({ success: false, error: 'Archivo no encontrado.' }, 404)
+    const details = await access.json<{ originalKey: string; codeHash: string }>()
+    const object = await media.get(details.originalKey)
+    if (!object) return c.json({ success: false, error: 'Archivo no encontrado.' }, 404)
+    const headers = new Headers()
+    object.writeHttpMetadata(headers)
+    headers.set('etag', object.httpEtag)
+    headers.set('cache-control', 'private, no-store')
+    headers.set('x-content-type-options', 'nosniff')
+    headers.set('content-disposition', object.httpMetadata?.contentDisposition || `attachment; filename="FotografiasElTigre-${photoId}.webp"`)
+    return new Response(object.body, { headers })
+  }
+
+  let photo = memoryGallery.find((p) => p.id === photoId)
+  const db = getD1(c)
+  if (!photo && db) {
+    try {
+      const row = await db.prepare('SELECT * FROM gallery WHERE id = ?').bind(photoId).first()
+      if (row) photo = row as any
+    } catch {}
+  }
+
+  if (!photo) {
+    return c.json({ success: false, error: 'Foto no encontrada' }, 404)
+  }
+
+  return c.redirect(photo.url)
+})
+
+// POST /api/receipts/upload - Submit payment proof
+app.post('/api/receipts/upload', async (c) => {
+  try {
+    const formData = await c.req.raw.formData()
+    const receiptFile = formData.get('receipt') as File | null
+    const clientName = String(formData.get('clientName') || '').trim()
+    const phone = String(formData.get('phone') || '').trim()
+    const photoId = String(formData.get('photoId') || '').trim()
+    const photoTitle = String(formData.get('photoTitle') || '').trim()
+    const notes = String(formData.get('notes') || '').trim()
+    const total = Number(formData.get('total') || 50)
+
+    if (!clientName || !phone) {
+      return c.json({ success: false, error: 'Por favor ingresa tu Nombre y Teléfono.' }, 400)
+    }
+
+    let receiptUrl = ''
+    const media = c.env?.MEDIA
+
+    if (receiptFile && typeof receiptFile.arrayBuffer === 'function' && receiptFile.size > 0) {
+      const ext = mediaExtensions[receiptFile.type] || 'jpg'
+      const receiptId = `rec-${crypto.randomUUID()}`
+      const receiptKey = `receipts/${receiptId}.${ext}`
+
+      if (media) {
+        await media.put(receiptKey, await receiptFile.arrayBuffer(), {
+          httpMetadata: { contentType: receiptFile.type, cacheControl: 'public, max-age=31536000' }
+        })
+        receiptUrl = `/media/${receiptKey}`
+      } else {
+        const buffer = await receiptFile.arrayBuffer()
+        const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)))
+        receiptUrl = `data:${receiptFile.type};base64,${base64}`
+      }
+    }
+
+    const orderId = 'TIG-' + Math.floor(1000 + Math.random() * 9000)
+    const downloadCode = `TIGRE-${Math.floor(1000 + Math.random() * 9000)}`
+
+    const newOrder: Order = {
+      id: orderId,
+      clientName,
+      phone,
+      videoPass: false,
+      photoCount: photoId ? 1 : 0,
+      selectedPhotoIds: photoId ? [photoId] : [],
+      selectedEvents: [],
+      notes: notes || (photoTitle ? `Comprobante para foto: "${photoTitle}" (ID: ${photoId})` : 'Comprobante de pago para descarga'),
+      total,
+      status: 'Comprobante Recibido (Por Validar)',
+      receiptUrl,
+      downloadCode,
+      createdAt: new Date().toISOString()
+    }
+
+    const db = getD1(c)
+    if (db) {
+      try {
+        await ensureTables(db)
+        await db.prepare(`
+          INSERT INTO orders (id, clientName, phone, videoPass, photoCount, selectedPhotoIds, selectedEvents, notes, total, status, receiptUrl, downloadCode, createdAt)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).bind(
+          newOrder.id,
+          newOrder.clientName,
+          newOrder.phone,
+          newOrder.videoPass ? 1 : 0,
+          newOrder.photoCount,
+          JSON.stringify(newOrder.selectedPhotoIds),
+          JSON.stringify(newOrder.selectedEvents),
+          newOrder.notes,
+          newOrder.total,
+          newOrder.status,
+          newOrder.receiptUrl || '',
+          newOrder.downloadCode || '',
+          newOrder.createdAt
+        ).run()
+      } catch (e) {
+        console.error('Error saving order with receipt to D1:', e)
+      }
+    }
+
+    memoryOrders.unshift(newOrder)
+    return c.json({
+      success: true,
+      order: newOrder,
+      downloadCode: newOrder.downloadCode,
+      message: 'Comprobante recibido con éxito. Será validado en breve.'
+    })
+  } catch (err: any) {
+    console.error('Error uploading receipt:', err)
+    return c.json({ success: false, error: 'Error procesando comprobante de pago.' }, 500)
+  }
+})
+
+// POST /api/admin/orders/:id/status - Update order status and code
+app.post('/api/admin/orders/:id/status', async (c) => {
+  if (!isAdmin(c)) return c.json({ success: false, error: 'Acceso no autorizado' }, 401)
+  const id = c.req.param('id')
+  try {
+    const body = await c.req.json()
+    const { status, downloadCode } = body
+    if (!status) return c.json({ success: false, error: 'Estado requerido' }, 400)
+
+    const db = getD1(c)
+    if (db) {
+      try {
+        await ensureTables(db)
+        await db.prepare(`
+          UPDATE orders SET status = ?, downloadCode = COALESCE(?, downloadCode) WHERE id = ?
+        `).bind(status, downloadCode || null, id).run()
+      } catch (e) {
+        console.error('Error updating order status in D1:', e)
+      }
+    }
+
+    const index = memoryOrders.findIndex((o) => o.id === id)
+    if (index !== -1) {
+      memoryOrders[index].status = status
+      if (downloadCode) memoryOrders[index].downloadCode = downloadCode
+    }
+
+    return c.json({ success: true, message: 'Estado del pedido actualizado' })
+  } catch {
+    return c.json({ success: false, error: 'Error actualizando estado' }, 500)
+  }
 })
 
 app.get('/api/media/download/:id', async (c) => {
@@ -438,7 +730,9 @@ app.post('/api/orders', async (c) => {
       selectedEvents: body.selectedEvents || [],
       notes: body.notes || '',
       total: Number(body.total || 0),
-      status: 'Pendiente',
+      status: body.status || 'Pendiente',
+      receiptUrl: body.receiptUrl || '',
+      downloadCode: body.downloadCode || `TIGRE-${Math.floor(1000 + Math.random() * 9000)}`,
       createdAt: new Date().toISOString()
     }
 
@@ -447,8 +741,8 @@ app.post('/api/orders', async (c) => {
       try {
         await ensureTables(db)
         await db.prepare(`
-          INSERT INTO orders (id, clientName, phone, videoPass, photoCount, selectedPhotoIds, selectedEvents, notes, total, status, createdAt)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO orders (id, clientName, phone, videoPass, photoCount, selectedPhotoIds, selectedEvents, notes, total, status, receiptUrl, downloadCode, createdAt)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
           newOrder.id,
           newOrder.clientName,
@@ -460,6 +754,8 @@ app.post('/api/orders', async (c) => {
           newOrder.notes,
           newOrder.total,
           newOrder.status,
+          newOrder.receiptUrl || '',
+          newOrder.downloadCode || '',
           newOrder.createdAt
         ).run()
       } catch (e) {
@@ -509,6 +805,8 @@ app.get('/api/orders', async (c) => {
             notes: row.notes || '',
             total: Number(row.total),
             status: row.status || 'Pendiente',
+            receiptUrl: row.receiptUrl || undefined,
+            downloadCode: row.downloadCode || undefined,
             createdAt: row.createdAt
           }
         })

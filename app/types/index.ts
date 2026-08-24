@@ -32,6 +32,8 @@ export interface Order {
   notes: string
   total: number
   status: 'pending' | 'paid' | 'delivered' | 'completed' | string
+  receiptUrl?: string
+  downloadCode?: string
   paymentMethod?: string
   paymentStatus?: string
   createdAt: string

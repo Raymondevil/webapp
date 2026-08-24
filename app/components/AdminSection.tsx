@@ -36,6 +36,25 @@ export const AdminSection: React.FC<AdminSectionProps> = ({
   const photoInputRef = useRef<HTMLInputElement>(null)
   const videoInputRef = useRef<HTMLInputElement>(null)
 
+  const [viewingReceiptUrl, setViewingReceiptUrl] = useState<string | null>(null)
+  const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null)
+
+  const handleUpdateOrderStatus = async (orderId: string, status: string, code?: string) => {
+    setUpdatingOrderId(orderId)
+    try {
+      await axios.post(
+        `/api/admin/orders/${orderId}/status`,
+        { status, downloadCode: code },
+        { headers: { Authorization: `Bearer ${authToken}` } }
+      )
+      onRefreshData()
+    } catch (err) {
+      console.error('Error updating order status:', err)
+    } finally {
+      setUpdatingOrderId(null)
+    }
+  }
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoginError('')
@@ -260,7 +279,15 @@ export const AdminSection: React.FC<AdminSectionProps> = ({
       {/* SUBTAB 1: ORDERS */}
       {activeSubTab === 'orders' && (
         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-6 shadow-xl">
-          <h2 className="font-serif font-black text-xl text-white">Solicitudes de Pedidos Registrados</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="font-serif font-black text-xl text-white">Solicitudes de Pedidos y Comprobantes</h2>
+            <button
+              onClick={onRefreshData}
+              className="bg-slate-950 hover:bg-slate-800 text-amber-300 border border-slate-800 text-xs font-bold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5"
+            >
+              <i className="fa-solid fa-arrows-rotate"></i> Actualizar
+            </button>
+          </div>
 
           {orders.length === 0 ? (
             <p className="text-xs text-slate-400 py-8 text-center">No hay pedidos registrados aún.</p>
@@ -272,58 +299,150 @@ export const AdminSection: React.FC<AdminSectionProps> = ({
                     <th className="p-3">ID / Fecha</th>
                     <th className="p-3">Cliente</th>
                     <th className="p-3">Contacto</th>
+                    <th className="p-3">Comprobante</th>
                     <th className="p-3">Detalle</th>
                     <th className="p-3">Total</th>
                     <th className="p-3">Estado</th>
+                    <th className="p-3">Código Descarga</th>
+                    <th className="p-3">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800">
-                  {orders.map((ord) => (
-                    <tr key={ord.id} className="hover:bg-slate-950/50">
-                      <td className="p-3 font-mono font-bold text-amber-300">
-                        {ord.id}
-                        <span className="block text-[10px] text-slate-500 font-sans">
-                          {new Date(ord.createdAt).toLocaleDateString()}
-                        </span>
-                      </td>
-                      <td className="p-3 font-bold text-white">{ord.clientName}</td>
-                      <td className="p-3">
-                        <a
-                          href={`https://wa.me/52${ord.phone.replace(/\D/g, '')}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-emerald-400 hover:underline font-bold"
-                        >
-                          <i className="fa-brands fa-whatsapp"></i> {ord.phone}
-                        </a>
-                      </td>
-                      <td className="p-3 max-w-xs">
-                        <div className="space-y-1">
-                          {ord.videoPass && (
-                            <span className="bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded text-[10px] font-bold mr-1">
-                              Pase Video ($600)
-                            </span>
+                  {orders.map((ord) => {
+                    const code = ord.downloadCode || `TIGRE-${ord.id.replace('TIG-', '')}`
+                    const isApproved = ord.status.toLowerCase().includes('aprob') || ord.status.toLowerCase().includes('paga')
+                    const waMessage = `¡Hola ${ord.clientName}! Tu comprobante de pago para el pedido #${ord.id} ha sido validado con éxito. Tu código de descarga autorizado es: *${code}*. Ya puedes entrar a la web y descargar tus fotos en alta calidad.`
+
+                    return (
+                      <tr key={ord.id} className="hover:bg-slate-950/50">
+                        <td className="p-3 font-mono font-bold text-amber-300">
+                          {ord.id}
+                          <span className="block text-[10px] text-slate-500 font-sans">
+                            {new Date(ord.createdAt).toLocaleDateString()}
+                          </span>
+                        </td>
+                        <td className="p-3 font-bold text-white">{ord.clientName}</td>
+                        <td className="p-3">
+                          <a
+                            href={`https://wa.me/52${ord.phone.replace(/\D/g, '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-emerald-400 hover:underline font-bold"
+                          >
+                            <i className="fa-brands fa-whatsapp"></i> {ord.phone}
+                          </a>
+                        </td>
+                        <td className="p-3">
+                          {ord.receiptUrl ? (
+                            <button
+                              type="button"
+                              onClick={() => setViewingReceiptUrl(ord.receiptUrl || null)}
+                              className="bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-500/30 px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1.5 cursor-pointer transition-all"
+                            >
+                              <i className="fa-solid fa-receipt"></i> Ver Ticket
+                            </button>
+                          ) : (
+                            <span className="text-slate-600 text-[11px] italic">Sin comprobante</span>
                           )}
-                          {ord.photoCount > 0 && (
-                            <span className="bg-slate-800 text-slate-200 px-1.5 py-0.5 rounded text-[10px] font-bold">
-                              {ord.photoCount} fotos
-                            </span>
-                          )}
-                          {ord.notes && <p className="text-[11px] text-slate-400 italic">"{ord.notes}"</p>}
-                        </div>
-                      </td>
-                      <td className="p-3 font-serif font-black text-amber-400 text-sm">${ord.total} MXN</td>
-                      <td className="p-3">
-                        <span className="bg-amber-500/10 text-amber-300 border border-amber-500/30 px-2.5 py-1 rounded-full font-bold text-[10px]">
-                          {ord.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="p-3 max-w-xs">
+                          <div className="space-y-1">
+                            {ord.videoPass && (
+                              <span className="bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded text-[10px] font-bold mr-1">
+                                Pase Video ($600)
+                              </span>
+                            )}
+                            {ord.photoCount > 0 && (
+                              <span className="bg-slate-800 text-slate-200 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                                {ord.photoCount} fotos
+                              </span>
+                            )}
+                            {ord.notes && <p className="text-[11px] text-slate-400 italic">"{ord.notes}"</p>}
+                          </div>
+                        </td>
+                        <td className="p-3 font-serif font-black text-amber-400 text-sm">${ord.total} MXN</td>
+                        <td className="p-3">
+                          <span
+                            className={`px-2.5 py-1 rounded-full font-bold text-[10px] ${
+                              isApproved
+                                ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
+                                : ord.receiptUrl
+                                ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30 animate-pulse'
+                                : 'bg-slate-800 text-slate-400'
+                            }`}
+                          >
+                            {ord.status}
+                          </span>
+                        </td>
+                        <td className="p-3">
+                          <span className="font-mono font-bold text-amber-400 text-xs bg-slate-950 px-2 py-1 rounded border border-slate-800">
+                            {ord.downloadCode || 'Sin asignar'}
+                          </span>
+                        </td>
+                        <td className="p-3">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {!isApproved && (
+                              <button
+                                type="button"
+                                disabled={updatingOrderId === ord.id}
+                                onClick={() => handleUpdateOrderStatus(ord.id, 'Pagado (Comprobante Aprobado)', code)}
+                                className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-2.5 py-1.5 rounded-lg text-[10px] transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                              >
+                                <i className="fa-solid fa-check-circle"></i> Aprobar Pago
+                              </button>
+                            )}
+
+                            <a
+                              href={`https://wa.me/52${ord.phone.replace(/\D/g, '')}?text=${encodeURIComponent(waMessage)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 font-bold px-2.5 py-1.5 rounded-lg text-[10px] transition-all flex items-center gap-1 cursor-pointer"
+                            >
+                              <i className="fa-brands fa-whatsapp"></i> Enviar Código
+                            </a>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
           )}
+        </div>
+      )}
+
+      {/* MODAL TO VIEW PAYMENT RECEIPT */}
+      {viewingReceiptUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md animate-fadeIn">
+          <div className="bg-slate-900 border border-amber-500/40 rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl relative">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="font-serif font-black text-lg text-white flex items-center gap-2">
+                <i className="fa-solid fa-receipt text-amber-400"></i> Comprobante de Pago
+              </h3>
+              <button
+                onClick={() => setViewingReceiptUrl(null)}
+                className="w-8 h-8 rounded-full bg-slate-950 text-slate-400 hover:text-white flex items-center justify-center cursor-pointer"
+              >
+                <i className="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+            <div className="bg-slate-950 rounded-2xl p-2 border border-slate-800 flex items-center justify-center max-h-[70vh] overflow-auto">
+              <img
+                src={viewingReceiptUrl}
+                alt="Comprobante de pago"
+                className="max-h-[65vh] w-auto object-contain rounded-xl"
+              />
+            </div>
+            <div className="flex justify-end">
+              <button
+                onClick={() => setViewingReceiptUrl(null)}
+                className="bg-slate-800 hover:bg-slate-700 text-white font-bold px-4 py-2 rounded-xl text-xs cursor-pointer"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

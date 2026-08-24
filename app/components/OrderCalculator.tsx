@@ -33,6 +33,8 @@ export const OrderCalculator: React.FC<OrderCalculatorProps> = ({
   const [clientName, setClientName] = useState<string>('')
   const [phone, setPhone] = useState<string>('')
   const [notes, setNotes] = useState<string>('')
+  const [receiptFile, setReceiptFile] = useState<File | null>(null)
+  const [receiptPreview, setReceiptPreview] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
@@ -116,26 +118,50 @@ export const OrderCalculator: React.FC<OrderCalculatorProps> = ({
     const totalPhotosCount = photoCounts.digital + photoCounts.fisica + photoCounts.marco
 
     try {
-      const response = await axios.post('/api/orders', {
-        clientName,
-        phone,
-        videoPass,
-        photoCount: totalPhotosCount,
-        selectedPhotoIds: selectedPhotos.map((p) => p.id),
-        selectedEvents,
-        notes,
-        total: grandTotal
-      })
+      if (receiptFile) {
+        // Upload with receipt
+        const formData = new FormData()
+        formData.append('receipt', receiptFile)
+        formData.append('clientName', clientName.trim())
+        formData.append('phone', phone.trim())
+        formData.append('photoId', selectedPhotos.map((p) => p.id).join(','))
+        formData.append('photoTitle', `Pedido de ${totalPhotosCount} fotos`)
+        formData.append('total', String(grandTotal))
+        formData.append('notes', `${notes ? notes + ' | ' : ''}Eventos: ${selectedEvents.join(', ')} | VideoPass: ${videoPass ? 'Sí' : 'No'}`)
 
-      if (response.data && response.data.success) {
-        const orderId = response.data.order?.id || 'TIG-ORDER'
-        setMessage({
-          type: 'success',
-          text: `¡Solicitud #${orderId} registrada con éxito! En breve te contactaremos.`
-        })
-        onOrderSubmitted(orderId)
+        const res = await axios.post('/api/receipts/upload', formData)
+        if (res.data && res.data.success) {
+          const orderId = res.data.order?.id || 'TIG-ORDER'
+          setMessage({
+            type: 'success',
+            text: `¡Pedido #${orderId} con comprobante registrado! Código de descarga generado: ${res.data.downloadCode || 'Pendiente'}.`
+          })
+          onOrderSubmitted(orderId)
+        } else {
+          setMessage({ type: 'error', text: 'Error al procesar comprobante. Intenta por WhatsApp.' })
+        }
       } else {
-        setMessage({ type: 'error', text: 'Error al registrar pedido. Intenta por WhatsApp.' })
+        const response = await axios.post('/api/orders', {
+          clientName,
+          phone,
+          videoPass,
+          photoCount: totalPhotosCount,
+          selectedPhotoIds: selectedPhotos.map((p) => p.id),
+          selectedEvents,
+          notes,
+          total: grandTotal
+        })
+
+        if (response.data && response.data.success) {
+          const orderId = response.data.order?.id || 'TIG-ORDER'
+          setMessage({
+            type: 'success',
+            text: `¡Solicitud #${orderId} registrada con éxito! En breve te contactaremos.`
+          })
+          onOrderSubmitted(orderId)
+        } else {
+          setMessage({ type: 'error', text: 'Error al registrar pedido. Intenta por WhatsApp.' })
+        }
       }
     } catch (err: any) {
       console.error('Order submission error:', err)
@@ -408,6 +434,42 @@ export const OrderCalculator: React.FC<OrderCalculatorProps> = ({
                   placeholder="Ej. 311 123 4567"
                   className="w-full bg-slate-950 border border-slate-800 focus:border-amber-400 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none"
                 />
+              </div>
+
+              {/* OPTIONAL PAYMENT RECEIPT */}
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1">
+                  Comprobante de Pago (Opcional - Transferencia SPEI / OXXO)
+                </label>
+                <div className="border border-dashed border-slate-700 hover:border-amber-400/50 rounded-xl p-3 bg-slate-950/40 text-center relative cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/avif"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) {
+                        setReceiptFile(file)
+                        const reader = new FileReader()
+                        reader.onload = () => setReceiptPreview(reader.result as string)
+                        reader.readAsDataURL(file)
+                      }
+                    }}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                  {receiptPreview ? (
+                    <div className="flex items-center justify-center gap-3">
+                      <img src={receiptPreview} alt="Comprobante" className="w-10 h-10 object-cover rounded-lg border border-slate-700" />
+                      <span className="text-xs text-emerald-400 font-bold truncate max-w-xs">
+                        <i className="fa-solid fa-check mr-1"></i> {receiptFile?.name}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center gap-2 text-slate-400 text-xs py-1">
+                      <i className="fa-solid fa-paperclip text-amber-400"></i>
+                      <span>Adjuntar captura de pago para descarga inmediata</span>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {message && (
