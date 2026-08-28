@@ -61,7 +61,7 @@ export const VideoBanner: React.FC<VideoBannerProps> = ({
           <div className="relative aspect-video bg-black flex items-center justify-center overflow-hidden">
             <video
               ref={videoRef}
-              src="/static/video/vueno.mp4"
+              src="/static/video/intro.mp4"
               poster="/static/logo.jpg"
               playsInline
               loop

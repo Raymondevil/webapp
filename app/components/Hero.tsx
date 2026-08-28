@@ -26,7 +26,7 @@ export const Hero: React.FC<HeroProps> = ({
           {/* TEXT CONTENT */}
           <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
             <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs md:text-sm font-extrabold px-4 py-2 rounded-full backdrop-blur-md">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+              <span className="w-2 h-2 rounded-full bg-red-600 animate-ping"></span>
               <i className="fa-solid fa-bullhorn text-amber-400"></i>
               <span>COBERTURA COMPLETA • SAN PEDRO LAGUNILLAS</span>
             </div>
@@ -86,7 +86,7 @@ export const Hero: React.FC<HeroProps> = ({
           <div className="lg:col-span-5 relative">
             <div className="relative mx-auto max-w-md lg:max-w-none rounded-3xl p-1 bg-gradient-to-b from-amber-500/40 via-amber-900/20 to-slate-900 shadow-2xl hero-card-glow overflow-hidden">
               <div className="bg-slate-900/90 backdrop-blur-xl rounded-[23px] p-6 space-y-6">
-                <div 
+                <div
                   onClick={onOpenVideo}
                   className="relative aspect-video rounded-2xl overflow-hidden shadow-lg border border-amber-500/30 group cursor-pointer"
                 >

@@ -92,7 +92,7 @@ export const initialGallery: GalleryItem[] = [
     date: "10 al 17 de Septiembre",
     type: "video",
     url: "/static/logo.jpg",
-    videoUrl: "/static/video/vueno.mp4",
+    videoUrl: "/static/video/intro.mp4",
     description:
       "Video completo de cobertura HD de las Fiestas Patrias de San Pedro Lagunillas: Topaderas, Cabalgatas, Noche del Grito, Desfiles y Bailes Populares.",
     price: 600,

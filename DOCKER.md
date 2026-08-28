@@ -1,88 +1,147 @@
-# Despliegue con Docker y Cloudflare Tunnel
+# Guía Completa de Despliegue en Producción (Docker + Cloudflare Tunnel)
 
-La aplicación se ejecuta en el contenedor `fotoseltigre`, en el puerto `8080`.
-El puerto se publica únicamente en `127.0.0.1`, por lo que no queda accesible
-directamente desde Internet. La aplicación y cloudflared se unen a la red
-privada `fotoseltigre-tunnel`; allí cloudflared resuelve la aplicación como
-`fotoseltigre`.
+Esta guía explica paso a paso cómo desplegar, actualizar y mantener la aplicación en producción utilizando **Docker Compose** y **Cloudflare Tunnel**.
 
-Las cargas hechas desde el panel de administración se almacenan en el volumen
-Docker `fotoseltigre-data`. Ese volumen conserva las fotos, videos, pedidos y
-catálogo cuando se actualiza o se recrea el contenedor. No lo elimines si deseas
-conservar esa información.
+---
 
-## Actualizar la aplicación
+## 📋 Arquitectura del Despliegue
 
-Cada vez que modifiques código, estilos o archivos dentro de `public/`, abre una
-terminal en la carpeta del proyecto y ejecuta:
+El sistema consta de dos servicios orquestados en [compose.yml](file:///media/proyecto/webapp/compose.yml):
+
+1. **`fotoseltigre` (Aplicación Web)**:
+   - Construido a partir de [Dockerfile](file:///media/proyecto/webapp/Dockerfile) con Node 22 y React Router 7.
+   - Escucha internamente en el puerto `8080` (`127.0.0.1:8080`).
+   - Almacena la base de datos (SQLite/D1) y archivos (R2) en el volumen persistente `fotoseltigre-data`.
+
+2. **`tunnel` (Cloudflare Tunnel / `cloudflared`)**:
+   - Conecta de forma segura el contenedor con la red de Cloudflare sin necesidad de abrir puertos en tu router o firewall.
+   - Comparte la red interna `fotoseltigre-tunnel` con la aplicación, redirigiendo el tráfico a `http://fotoseltigre:8080`.
+
+---
+
+## 🚀 1. Despliegue Inicial desde Cero
+
+### Paso 1: Configurar el archivo `compose.yml`
+
+Verifica que el archivo [compose.yml](file:///media/proyecto/webapp/compose.yml) contenga la definición de ambos servicios y el token de tu túnel:
+
+```yaml
+services:
+  fotoseltigre:
+    build:
+      context: .
+    image: fotoseltigre:latest
+    container_name: fotoseltigre
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"
+    networks:
+      - tunnel
+    volumes:
+      - fotoseltigre-data:/app/.wrangler
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: fotoseltigre-cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate --protocol http2 run --token <TU_TOKEN_DE_CLOUDFLARE>
+    networks:
+      - tunnel
+    depends_on:
+      - fotoseltigre
+
+networks:
+  tunnel:
+    name: fotoseltigre-tunnel
+
+volumes:
+  fotoseltigre-data:
+    name: fotoseltigre-data
+```
+
+> **Nota:** La bandera `--protocol http2` garantiza la estabilidad de la conexión evitando problemas de bloqueo de paquetes UDP/QUIC en ciertos proveedores de internet.
+
+---
+
+### Paso 2: Compilar y levantar los contenedores
+
+Abre una terminal en la carpeta del proyecto y ejecuta:
 
 ```bash
 cd /media/proyecto/webapp
 docker compose up -d --build
 ```
 
-Este comando crea una imagen nueva y reemplaza el contenedor sin borrar las
-fotos, videos, pedidos ni códigos de descarga, ya que se conservan en el
-volumen `fotoseltigre-data`.
+Este comando descargará las imágenes necesarias, compilará el frontend y el servidor de producción, y arrancará los dos contenedores en segundo plano.
 
-Comprueba que arrancó correctamente:
+---
 
-```bash
-docker compose ps
-docker compose logs --tail 50 fotoseltigre
-curl -I http://127.0.0.1:8080
-```
+### Paso 3: Configurar el dominio en Cloudflare Zero Trust
 
-La última orden debe responder `HTTP/1.1 200 OK`. Para ver registros en tiempo
-real, usa `docker compose logs -f fotoseltigre` y sal con `Ctrl+C`.
+1. Entra al panel de [Cloudflare Zero Trust](https://one.dash.cloudflare.com/).
+2. Dirígete a **Networks** > **Tunnels** y selecciona tu túnel (ej. `eltigre-fotos`).
+3. Ve a la pestaña **Public Hostnames** y haz clic en **Add a public hostname** (o edita el existente):
+   - **Hostname:** Tu dominio o subdominio (ej. `fotoseltigre.shop` o `www.fotoseltigre.shop`).
+   - **Service Type:** `HTTP`
+   - **URL:** `fotoseltigre:8080` (o `http://fotoseltigre:8080`).
+4. Guarda los cambios. El tráfico HTTPS hacia tu dominio llegará automáticamente al contenedor.
 
-Si sólo cambiaste la configuración del túnel en el panel de Cloudflare, no hace
-falta reconstruir esta aplicación.
+---
 
-### Importante: no borrar los datos
+## 🔄 2. Actualizar la Aplicación (Nuevos Cambios de Código)
 
-No ejecutes `docker compose down -v` ni `docker volume rm fotoseltigre-data`:
-ambos eliminarían el almacenamiento persistente de las cargas, pedidos y
-códigos de descarga. Un `docker compose down` sin `-v` sí conserva los datos.
-
-## Copia de seguridad de las cargas
-
-Antes de cambios grandes, guarda una copia del volumen en el directorio actual:
+Cada vez que agregues fotos, modifiques componentes, estilos o rutas:
 
 ```bash
-docker run --rm -v fotoseltigre-data:/datos -v "$(pwd)":/respaldo alpine tar czf /respaldo/fotoseltigre-data-respaldo.tar.gz -C /datos .
+cd /media/proyecto/webapp
+
+# Reconstruir la imagen y reiniciar el contenedor
+docker compose up -d --build
 ```
 
-El archivo `fotoseltigre-data-respaldo.tar.gz` incluye las fotos, videos y la
-base de datos local. Guárdalo también fuera de esta computadora.
+> **Los datos no se pierden:** Las fotos subidas, pedidos y la base de datos se conservan intactos en el volumen `fotoseltigre-data`.
 
-## Conectar el túnel existente
+---
 
-En el túnel **eltigre-fotos**, agrega o edita el *Public Hostname*:
+## 🔍 3. Monitoreo y Comandos Frecuentes
 
-| Campo | Valor |
-| --- | --- |
-| Hostname | `fotoseltigre.shop` o `www.fotoseltigre.shop` |
-| Service type | `HTTP` |
-| URL | `http://fotoseltigre:8080` |
+| Acción | Comando |
+| :--- | :--- |
+| **Ver estado de los contenedores** | `docker compose ps` |
+| **Ver registros de ambos contenedores** | `docker compose logs -f` |
+| **Ver registros sólo de la aplicación** | `docker compose logs -f fotoseltigre` |
+| **Ver registros sólo del túnel** | `docker compose logs -f tunnel` |
+| **Probar respuesta local (HTTP 200)** | `curl -I http://127.0.0.1:8080` |
+| **Detener servicios (conservando datos)**| `docker compose down` |
+| **Iniciar servicios ya construidos** | `docker compose up -d` |
 
-Si usas ambos dominios, crea una entrada para cada uno y usa exactamente el
-servicio `HTTP` con la URL `http://fotoseltigre:8080`. No uses `HTTPS` ni el
-puerto `80`, porque este contenedor escucha en HTTP por el puerto `8080`.
+---
 
-Une una vez el contenedor ya existente de cloudflared a esta red:
+## 💾 4. Respaldos y Restauración
+
+### Crear una copia de seguridad del volumen
+
+Guarda una copia comprimida de la base de datos y archivos subidos:
 
 ```bash
-docker network connect fotoseltigre-tunnel <contenedor-cloudflared>
+docker run --rm -v fotoseltigre-data:/datos -v "$(pwd)":/respaldo alpine tar czf /respaldo/fotoseltigre-data-respaldo-$(date +%Y%m%d).tar.gz -C /datos .
 ```
 
-Si el túnel está administrado desde el panel de
-Cloudflare (token), el cambio de hostname se aplica desde el panel sin reiniciar
-el túnel. Para una configuración local, el ingreso equivalente es:
+### Restaurar una copia de seguridad
 
-```yaml
-ingress:
-  - hostname: fotoseltigre.shop
-    service: http://fotoseltigre:8080
-  - service: http_status:404
+Si necesitas restaurar los datos en una nueva máquina o tras un formateo:
+
+```bash
+docker run --rm -v fotoseltigre-data:/datos -v "$(pwd)":/respaldo alpine tar xzf /respaldo/fotoseltigre-data-respaldo-AAAAMMDD.tar.gz -C /datos
 ```
+
+---
+
+## ⚠️ 5. Advertencias de Seguridad y Buenas Prácticas
+
+1. **Nunca borrar volúmenes por error:**  
+   Evita ejecutar `docker compose down -v` o `docker volume rm fotoseltigre-data`, ya que eliminaría de forma permanente los pedidos y fotos cargadas.
+2. **Tokens y Secretos:**  
+   Si requieres cambiar la contraseña de administración o el token de Cloudflare, actualízalos en la configuración antes de desplegar.
+3. **Reinicio automático:**  
+   Gracias a `restart: unless-stopped`, si el servidor se reinicia o sufre un corte de energía, los contenedores arrancarán automáticamente al encender.

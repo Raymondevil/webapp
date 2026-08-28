@@ -14,6 +14,16 @@ services:
       # Persist local D1/R2 data across container updates and rebuilds.
       - fotoseltigre-data:/app/.wrangler
 
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: fotoseltigre-cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate --protocol http2 run --token eyJhIjoiMGQxNjc4MjExNjZkYTA3YTIyYTMwODUyZWI2NTYxNDYiLCJ0IjoiN2ExZjA3NWItZDY0Yy00OGI0LWE1OTEtNGQ4ZWNhYmUzZDBkIiwicyI6Ik1UVmhZamRpTldRdE5EYzRZUzAwWVRJMUxXRmpNMkV0WmpKaE9HTTVOMlUzWVdGaCJ9
+    networks:
+      - tunnel
+    depends_on:
+      - fotoseltigre
+
 networks:
   tunnel:
     name: fotoseltigre-tunnel
@@ -21,3 +31,4 @@ networks:
 volumes:
   fotoseltigre-data:
     name: fotoseltigre-data
+
