@@ -346,7 +346,7 @@ async function verifyDownloadCode(code: string, photoId: string, c: any): Promis
       const access = await media.get(`access/${photoId}.json`)
       if (access) {
         try {
-          const details = await access.json<{ originalKey: string; codeHash: string }>()
+          const details = (await access.json()) as { originalKey: string; codeHash: string }
           if (details.codeHash === await hashCode(code.trim())) {
             return true
           }
@@ -452,7 +452,7 @@ app.get('/api/download/:id', async (c) => {
     if (!media) return c.json({ success: false, error: 'Almacenamiento no disponible.' }, 503)
     const access = await media.get(`access/${photoId}.json`)
     if (!access) return c.json({ success: false, error: 'Archivo no encontrado.' }, 404)
-    const details = await access.json<{ originalKey: string; codeHash: string }>()
+    const details = (await access.json()) as { originalKey: string; codeHash: string }
     const object = await media.get(details.originalKey)
     if (!object) return c.json({ success: false, error: 'Archivo no encontrado.' }, 404)
     const headers = new Headers()
@@ -617,7 +617,7 @@ app.get('/api/media/download/:id', async (c) => {
   const access = await media.get(`access/${mediaId}.json`)
   if (!access) return c.json({ success: false, error: 'Archivo no encontrado.' }, 404)
   try {
-    const details = await access.json<{ originalKey: string; codeHash: string }>()
+    const details = (await access.json()) as { originalKey: string; codeHash: string }
     if (details.codeHash !== await hashCode(code)) return c.json({ success: false, error: 'Código de descarga incorrecto.' }, 401)
     const object = await media.get(details.originalKey)
     if (!object) return c.json({ success: false, error: 'Archivo no encontrado.' }, 404)

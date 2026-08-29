@@ -1,5 +1,6 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import type { GalleryItem } from '../types'
+import { Carousel } from './Carousel'
 
 interface GallerySectionProps {
   galleryItems: GalleryItem[]
@@ -17,6 +18,7 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
   const [currentFilter, setCurrentFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [dorsalFilter, setDorsalFilter] = useState<string>('')
+  const [viewMode, setViewMode] = useState<'grid' | 'carousel'>('grid')
 
   const categories = [
     { key: 'all', label: 'Todos' },
@@ -28,30 +30,39 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
     { key: 'videos', label: 'Videos' }
   ]
 
-  const filteredItems = galleryItems.filter((item) => {
-    // Category match
-    if (currentFilter !== 'all' && item.category !== currentFilter) {
-      return false
-    }
-    // Search query match
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim()
-      const titleMatch = item.title.toLowerCase().includes(q)
-      const descMatch = item.description.toLowerCase().includes(q)
-      const dorsalMatch = item.dorsal?.toLowerCase().includes(q)
-      if (!titleMatch && !descMatch && !dorsalMatch) return false
-    }
-    // Dorsal specific filter
-    if (dorsalFilter.trim()) {
-      const d = dorsalFilter.trim().replace('#', '').toLowerCase()
-      if (!item.dorsal?.toLowerCase().includes(d)) return false
-    }
-    return true
-  })
+  // Filtered items based on search/dorsal/category
+  const filteredItems = useMemo(() => {
+    return galleryItems.filter((item) => {
+      // Category match
+      if (currentFilter !== 'all' && item.category !== currentFilter) {
+        return false
+      }
+      // Search query match
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim()
+        const titleMatch = item.title.toLowerCase().includes(q)
+        const descMatch = item.description.toLowerCase().includes(q)
+        const dorsalMatch = item.dorsal?.toLowerCase().includes(q)
+        if (!titleMatch && !descMatch && !dorsalMatch) return false
+      }
+      // Dorsal specific filter
+      if (dorsalFilter.trim()) {
+        const d = dorsalFilter.trim().replace('#', '').toLowerCase()
+        if (!item.dorsal?.toLowerCase().includes(d)) return false
+      }
+      return true
+    })
+  }, [galleryItems, currentFilter, searchQuery, dorsalFilter])
+
+  // Featured items for the top highlight carousel (Option 1)
+  const featuredItems = useMemo(() => {
+    return galleryItems.slice(0, 10)
+  }, [galleryItems])
 
   return (
     <section id="galeria" className="py-16 bg-slate-950 relative">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+        {/* SECTION HEADER */}
         <div className="text-center space-y-4 max-w-3xl mx-auto">
           <span className="bg-amber-500/10 text-amber-300 border border-amber-500/30 text-xs font-black px-4 py-1.5 rounded-full uppercase">
             <i className="fa-solid fa-camera-retro mr-1"></i> Muestra de Cobertura
@@ -63,6 +74,34 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
             Filtra por evento o ingresa el número de dorsal (#) para localizar tus capturas. Haz clic en la foto para amplificar.
           </p>
         </div>
+
+        {/* OPCIÓN 1: CARRUSEL DE MOMENTOS DESTACADOS */}
+        {featuredItems.length > 0 && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
+                <h3 className="font-serif font-black text-xl sm:text-2xl text-white">
+                  Momentos Destacados
+                </h3>
+              </div>
+              <span className="text-slate-400 text-xs font-semibold hidden sm:inline">
+                <i className="fa-solid fa-wand-magic-sparkles text-amber-400 mr-1"></i>
+                Diapositivas automáticas
+              </span>
+            </div>
+
+            <Carousel
+              items={featuredItems}
+              onOpenLightbox={onOpenLightbox}
+              onAddPhotoToOrder={onAddPhotoToOrder}
+              autoPlay={true}
+              autoPlayInterval={5000}
+              title="Lo Mejor de las Fiestas Patrias"
+              subtitle="Cobertura fotográfica y en video en San Pedro Lagunillas"
+            />
+          </div>
+        )}
 
         {/* SEARCH AND FILTERS BAR */}
         <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 space-y-6">
@@ -91,13 +130,49 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
               </div>
             </div>
 
-            {/* SELECCIONAR MULTIPLE BUTTON */}
-            <button
-              onClick={onOpenSeleccionar}
-              className="w-full md:w-auto bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold px-4 py-2.5 rounded-xl whitespace-nowrap transition-all flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <i className="fa-solid fa-square-check"></i> Selección por Casillas ($50 c/u)
-            </button>
+            {/* ACTION BUTTONS & VIEW TOGGLE */}
+            <div className="flex items-center gap-3 w-full md:w-auto justify-between sm:justify-end">
+              {/* OPCIÓN 3: TOGGLE DE VISTA CUADRÍCULA / CARRUSEL */}
+              <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setViewMode('grid')}
+                  title="Vista en Cuadrícula"
+                  className={`px-3 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                    viewMode === 'grid'
+                      ? 'bg-amber-500 text-slate-950 shadow-md font-black'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <i className="fa-solid fa-table-cells"></i>
+                  <span className="hidden sm:inline">Cuadrícula</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setViewMode('carousel')}
+                  title="Vista en Carrusel"
+                  className={`px-3 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                    viewMode === 'carousel'
+                      ? 'bg-amber-500 text-slate-950 shadow-md font-black'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <i className="fa-solid fa-sliders"></i>
+                  <span className="hidden sm:inline">Carrusel</span>
+                </button>
+              </div>
+
+              {/* SELECCIONAR MULTIPLE BUTTON */}
+              <button
+                onClick={onOpenSeleccionar}
+                className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold px-4 py-2.5 rounded-xl whitespace-nowrap transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <i className="fa-solid fa-square-check"></i>
+                <span className="hidden sm:inline">Selección por Casillas ($50 c/u)</span>
+                <span className="sm:hidden">Casillas</span>
+              </button>
+            </div>
           </div>
 
           {/* CATEGORIES TABS */}
@@ -118,7 +193,19 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
           </div>
         </div>
 
-        {/* GALLERY GRID */}
+        {/* RESULTS COUNT & FILTER INFO */}
+        <div className="flex items-center justify-between text-xs text-slate-400 px-1">
+          <span>
+            Mostrando <strong className="text-amber-400">{filteredItems.length}</strong> {filteredItems.length === 1 ? 'fotografía' : 'fotografías'}
+            {currentFilter !== 'all' && ` en "${categories.find((c) => c.key === currentFilter)?.label}"`}
+            {dorsalFilter && ` con dorsal "${dorsalFilter}"`}
+          </span>
+          <span className="text-[11px] text-slate-500 hidden sm:inline">
+            {viewMode === 'carousel' ? 'Modo de visualización: Carrusel / Diapositivas' : 'Modo de visualización: Cuadrícula'}
+          </span>
+        </div>
+
+        {/* GALLERY CONTENT: GRID OR CAROUSEL BASED ON VIEW MODE (OPTION 3) */}
         {filteredItems.length === 0 ? (
           <div className="bg-slate-900/50 border border-slate-800 rounded-3xl p-12 text-center space-y-4">
             <i className="fa-solid fa-images text-4xl text-slate-600"></i>
@@ -129,7 +216,20 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
               Intenta cambiar el filtro o escríbenos directamente por WhatsApp para buscar tu foto en la base de datos completa.
             </p>
           </div>
+        ) : viewMode === 'carousel' ? (
+          /* VISTA CARRUSEL (OPTION 3) */
+          <div className="space-y-4">
+            <Carousel
+              items={filteredItems}
+              onOpenLightbox={onOpenLightbox}
+              onAddPhotoToOrder={onAddPhotoToOrder}
+              autoPlay={false}
+              title={currentFilter !== 'all' ? `Fotos: ${categories.find(c => c.key === currentFilter)?.label}` : 'Explorador en Carrusel'}
+              subtitle={`${filteredItems.length} fotografías encontradas`}
+            />
+          </div>
         ) : (
+          /* VISTA CUADRÍCULA */
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredItems.map((item) => (
               <div

@@ -19,6 +19,8 @@ export interface EventItem {
   description: string
   badge: string
   tag: string
+  type?: 'photo' | 'video'
+  url?: string
 }
 
 export interface Order {
