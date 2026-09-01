@@ -30,8 +30,8 @@ function getD1(c: any) {
 function isAdmin(c: any) {
   const authHeader = c.req.header('Authorization')
   const token = authHeader ? authHeader.replace(/^Bearer\s+/i, '') : ''
-  const expectedToken = c.env?.ADMIN_TOKEN || 'admin-secret-token-eltigre'
-  return token === expectedToken
+  const expectedToken = c.env?.ADMIN_TOKEN
+  return Boolean(expectedToken) && token === expectedToken
 }
 
 function mediaIdIsSafe(id: string) {
@@ -238,11 +238,15 @@ app.post('/api/admin/login', async (c) => {
       return c.json({ success: false, error: 'Contraseña requerida' }, 400)
     }
     
-    // Use environment variable for secure password (recommended for production)
-    const adminPassword = (c.env as any)?.ADMIN_PASSWORD || 'eltigre2026'
+    const adminPassword = (c.env as any)?.ADMIN_PASSWORD
+    const adminToken = (c.env as any)?.ADMIN_TOKEN
+
+    if (!adminPassword || !adminToken) {
+      return c.json({ success: false, error: 'Administración no configurada' }, 503)
+    }
     
     if (password === adminPassword) {
-      return c.json({ success: true, token: 'admin-secret-token-eltigre' })
+      return c.json({ success: true, token: adminToken })
     }
     return c.json({ success: false, error: 'Contraseña incorrecta' }, 401)
   } catch {

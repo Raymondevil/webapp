@@ -1,0 +1,16 @@
+[Unit]
+Description=Videos y Fotos El Tigre web application
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/media/proyecto/webapp
+ExecStart=/media/proyecto/webapp/scripts/run-local-production.sh
+Restart=always
+RestartSec=5
+TimeoutStartSec=180
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=default.target

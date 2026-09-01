@@ -1,0 +1,15 @@
+[Unit]
+Description=Cloudflare Tunnel for Videos y Fotos El Tigre
+After=network-online.target fotoseltigre.service
+Wants=network-online.target
+Requires=fotoseltigre.service
+
+[Service]
+Type=simple
+WorkingDirectory=/media/proyecto/webapp
+ExecStart=/media/proyecto/webapp/scripts/run-cloudflared.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target
