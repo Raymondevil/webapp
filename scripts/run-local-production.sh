@@ -17,6 +17,7 @@ cd "$project_dir"
 npm run build
 exec npm exec -- wrangler dev \
   --config build/server/wrangler.json \
+  --assets build/client \
   --local \
   --ip 127.0.0.1 \
   --port 8080 \

@@ -7,6 +7,7 @@ Requires=fotoseltigre.service
 [Service]
 Type=simple
 WorkingDirectory=/media/proyecto/webapp
+EnvironmentFile=-/etc/fotoseltigre/cloudflared.env
 ExecStart=/media/proyecto/webapp/scripts/run-cloudflared.sh
 Restart=always
 RestartSec=5
