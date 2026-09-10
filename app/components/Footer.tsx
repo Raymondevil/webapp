@@ -1,7 +1,7 @@
 import React from 'react'
 
 export const Footer: React.FC = () => {
-  const LOCAL_LOGO_URL = '/static/logo.jpg'
+  const LOCAL_LOGO_URL = '/static/logo.png'
 
   return (
     <footer className="bg-slate-950 border-t border-amber-900/40 text-slate-400 py-12 relative">

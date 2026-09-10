@@ -12,7 +12,7 @@ export const Header: React.FC<HeaderProps> = ({
   selectedPhotoCount
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const LOCAL_LOGO_URL = '/static/logo.jpg'
+  const LOCAL_LOGO_URL = '/static/logo.png'
 
   return (
     <>

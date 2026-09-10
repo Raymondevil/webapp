@@ -61,8 +61,8 @@ export const VideoBanner: React.FC<VideoBannerProps> = ({
           <div className="relative aspect-video bg-black flex items-center justify-center overflow-hidden">
             <video
               ref={videoRef}
-              src="/static/video/promo.mp4"
-              poster="/static/logo.jpg"
+              src="/static/video/index.m3u8"
+              poster="/static/logo.png"
               playsInline
               loop
               muted={isMuted}

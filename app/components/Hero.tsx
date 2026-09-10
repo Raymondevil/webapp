@@ -13,7 +13,7 @@ export const Hero: React.FC<HeroProps> = ({
   onOpenSeleccionar,
   onOpenVideo
 }) => {
-  const LOCAL_LOGO_URL = '/static/logo.jpg'
+  const LOCAL_LOGO_URL = '/static/logo.png'
 
   return (
     <section id="inicio" className="relative overflow-hidden pt-12 pb-20 md:py-24">
