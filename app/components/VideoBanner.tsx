@@ -52,7 +52,7 @@ export const VideoBanner: React.FC<VideoBannerProps> = ({
             Revive la Emoción en Video Full HD
           </h2>
           <p className="text-slate-300 text-xs sm:text-sm">
-            Disfruta del tráiler oficial con los mejores momentos de las fiestas. Adquiere el <strong>Pase Total de Videos ($600 MXN)</strong> para tener todas las grabaciones completas de cada día y evento.
+            Programa de las Fiestas. Adquiere el <strong>Pase Total de Videos ($600 MXN)</strong> para tener todas las grabaciones completas de cada día y evento.
           </p>
         </div>
 
@@ -61,7 +61,7 @@ export const VideoBanner: React.FC<VideoBannerProps> = ({
           <div className="relative aspect-video bg-black flex items-center justify-center overflow-hidden">
             <video
               ref={videoRef}
-              src="/static/video/intro.mp4"
+              src="/static/video/promo.mp4"
               poster="/static/logo.jpg"
               playsInline
               loop
@@ -122,7 +122,7 @@ export const VideoBanner: React.FC<VideoBannerProps> = ({
                 <span className="font-serif font-black text-amber-400 text-xl">$600 MXN</span>
               </div>
               <p className="text-slate-400 text-xs">
-                Incluye todos los días (10 Sep al Cierre): Desfiles, Noche del Grito, Jaripeos y todas las Topaderas en Memoria USB o Digital.
+                Incluye todos los días (del 12 al 19 Sep): Desfiles, Noche del Grito, Jaripeos y todas las Topaderas en Memoria USB o Digital.
               </p>
             </div>
 

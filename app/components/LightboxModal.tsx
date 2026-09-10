@@ -13,8 +13,8 @@ export const LightboxModal: React.FC<LightboxModalProps> = ({
   onClose,
   onAddPhotoToOrder
 }) => {
-  if (!photo) return null
   const [showProofModal, setShowProofModal] = useState(false)
+  if (!photo) return null
   const isProtectedUpload = photo.id.startsWith('m-')
 
   return (
@@ -119,12 +119,8 @@ export const LightboxModal: React.FC<LightboxModalProps> = ({
         </div>
       </div>
 
-      {/* PROOF AND DOWNLOAD MODAL */}
-      <DownloadProofModal
-        photo={photo}
-        isOpen={showProofModal}
-        onClose={() => setShowProofModal(false)}
-      />
+      <DownloadProofModal photo={photo} isOpen={showProofModal} onClose={() => setShowProofModal(false)} />
+
     </>
   )
 }

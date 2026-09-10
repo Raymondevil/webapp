@@ -27,7 +27,7 @@ export const Header: React.FC<HeaderProps> = ({
           <strong>FOTOGRAFÍAS "EL TIGRE"</strong> — Cobertura Oficial Fiestas Patrias San Pedro Lagunillas 2026
         </span>
         <span className="bg-slate-950 text-amber-400 px-2.5 py-0.5 rounded-full text-xs uppercase tracking-wider font-extrabold ml-2">
-          Del 10 Sep a la Última Topadera
+          Del 12 Sep al 19
         </span>
         <a
           href="#cotizador"
@@ -120,7 +120,7 @@ export const Header: React.FC<HeaderProps> = ({
               rel="noopener noreferrer"
               className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-lg shadow-emerald-600/20 hover:shadow-emerald-600/40 transition-all flex items-center gap-2"
             >
-              <i className="fa-brands fa-whatsapp text-sm"></i> 311 847 0860
+              <i className="fa-brands fa-whatsapp text-sm"></i> 667 354 2363
             </a>
           </div>
 
@@ -193,7 +193,7 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
             <div className="pt-2">
               <a
-                href="https://wa.me/523118470860"
+                href="https://wa.me/526673542363"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="bg-emerald-600 text-white font-bold text-center py-3 rounded-xl flex items-center justify-center gap-2 w-full"

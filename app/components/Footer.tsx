@@ -42,12 +42,12 @@ export const Footer: React.FC = () => {
           </div>
 
           <a
-            href="https://wa.me/523118470860"
+            href="https://wa.me/526673542363"
             target="_blank"
             rel="noopener noreferrer"
             className="text-xs text-emerald-400 hover:underline font-bold flex items-center gap-1.5"
           >
-            <i className="fa-brands fa-whatsapp text-sm"></i> 311 847 0860
+            <i className="fa-brands fa-whatsapp text-sm"></i> 667 354 2363
           </a>
         </div>
 

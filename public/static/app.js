@@ -443,42 +443,6 @@ function sendBatchWhatsAppOrder() {
     window.open(`https://wa.me/523118470860?text=${encoded}`, '_blank');
 }
 
-// Pay Batch Mercado Pago from /seleccionar
-async function payBatchMercadoPago() {
-    if (selectedPhotoMap.size === 0 && !selectionVideoPass) {
-        alert('Por favor selecciona al menos una foto o el paquete de video.');
-        return;
-    }
-
-    let photosTotal = 0;
-    selectedPhotoMap.forEach((type) => {
-        if (type === 'digital') photosTotal += 30;
-        else if (type === 'fisica') photosTotal += 50;
-        else if (type === 'marco') photosTotal += 70;
-    });
-
-    const grandTotal = photosTotal + (selectionVideoPass ? 600 : 0);
-
-    try {
-        const res = await axios.post('/api/payment/mercadopago', {
-            clientName: 'Cliente Selección Checkbox',
-            phone: '3118470860',
-            videoPass: selectionVideoPass,
-            photoCount: selectedPhotoMap.size,
-            selectedPhotoIds: Array.from(selectedPhotoMap.keys()),
-            total: grandTotal
-        });
-
-        if (res.data && res.data.success) {
-            window.open(res.data.initPoint, '_blank');
-        } else {
-            alert('Error generando el enlace de Mercado Pago.');
-        }
-    } catch (e) {
-        alert('Error conectando con Mercado Pago.');
-    }
-}
-
 // Search by Dorsal
 function searchByDorsal() {
     const input = document.getElementById('dorsal-search-input');
@@ -641,18 +605,9 @@ async function handleOrderSubmit(e) {
     const name = document.getElementById('client-name').value.trim();
     const phone = document.getElementById('client-phone').value.trim();
     const notes = document.getElementById('order-notes').value.trim();
-    const paymentRadio = document.querySelector('input[name="payment-method"]:checked');
-    const paymentMethod = paymentRadio ? paymentRadio.value : 'WhatsApp / Efectivo';
 
     if (!name || !phone) {
         showOrderStatus('Por favor ingresa tu nombre y teléfono.', 'error');
-        return;
-    }
-
-    const total = (currentVideoPass ? 600 : 0) + (currentPhotosCount * 50);
-
-    if (paymentMethod === 'Mercado Pago') {
-        processMercadoPagoCheckout(name, phone, notes, total);
         return;
     }
 
@@ -666,7 +621,7 @@ async function handleOrderSubmit(e) {
             videoPass: currentVideoPass,
             photoCount: currentPhotosCount,
             notes: notes,
-            paymentMethod: paymentMethod
+            paymentMethod: 'WhatsApp / Efectivo'
         });
 
         if (response.data && response.data.success) {
@@ -678,47 +633,6 @@ async function handleOrderSubmit(e) {
         showOrderStatus('Error al conectar con el servidor.', 'error');
     } finally {
         btn.disabled = false;
-    }
-}
-
-async function processMercadoPagoCheckout(name, phone, notes, total) {
-    if (total <= 0) {
-        showOrderStatus('Selecciona al menos una foto o el paquete de video para pagar.', 'error');
-        return;
-    }
-
-    try {
-        const res = await axios.post('/api/payment/mercadopago', {
-            clientName: name,
-            phone: phone,
-            videoPass: currentVideoPass,
-            photoCount: currentPhotosCount,
-            total: total
-        });
-
-        if (res.data && res.data.success) {
-            document.getElementById('mp-modal-total').innerText = `$${total} MXN`;
-            document.getElementById('mp-checkout-link').href = res.data.initPoint;
-            openMpModal();
-        }
-    } catch (err) {
-        showOrderStatus('Error de conexión con Mercado Pago.', 'error');
-    }
-}
-
-function openMpModal() {
-    const modal = document.getElementById('mercadopago-modal');
-    if (modal) {
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-    }
-}
-
-function closeMpModal() {
-    const modal = document.getElementById('mercadopago-modal');
-    if (modal) {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
     }
 }
 

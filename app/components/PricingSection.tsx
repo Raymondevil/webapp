@@ -20,7 +20,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
             Elige tu Paquete de Contenido
           </h2>
           <p className="text-slate-300 text-sm">
-            Sin precios ocultos. Cobertura profesional completa de todas las festividades del 10 de septiembre hasta la última topadera.
+            Sin precios ocultos. Cobertura profesional completa de todas las festividades del 12 de Septiembre hasta el 19 de Septiembre.
           </p>
         </div>
 
@@ -46,15 +46,15 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
               <ul className="space-y-3.5 text-xs text-slate-200">
                 <li className="flex items-start gap-3">
                   <i className="fa-solid fa-circle-check text-amber-400 text-sm mt-0.5"></i>
-                  <span><strong>Video Full HD de TODOS los días</strong> (10 de Septiembre a Última Topadera).</span>
+                  <span><strong>Video Full HD de TODOS los días</strong> (Del 12 al 19 de Septiembre).</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <i className="fa-solid fa-circle-check text-amber-400 text-sm mt-0.5"></i>
-                  <span>Desfiles, Entrada de la Música, Desfile de Antorchas y Noche del Grito.</span>
+                  <span>Desfiles, Bailes, Noche del Grito y Topadera.</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <i className="fa-solid fa-circle-check text-amber-400 text-sm mt-0.5"></i>
-                  <span>Cabalgatas, Jaripeos y <strong>Todas las Topaderas</strong> filmadas en directo.</span>
+                  <span>Jaripeos y <strong>Todas las Topaderas</strong> filmadas en directo.</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <i className="fa-solid fa-circle-check text-amber-400 text-sm mt-0.5"></i>
@@ -95,7 +95,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                 </li>
                 <li className="flex items-start gap-3">
                   <i className="fa-solid fa-magnifying-glass text-emerald-400 text-sm mt-0.5"></i>
-                  <span>Búsqueda por número de dorsal (#) o nombre de participante/charro.</span>
+                  <span>Búsqueda por número de dorsal (#).</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <i className="fa-solid fa-print text-emerald-400 text-sm mt-0.5"></i>

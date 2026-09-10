@@ -119,7 +119,7 @@ export const Hero: React.FC<HeroProps> = ({
                   </p>
                   <div className="bg-slate-950/80 rounded-xl p-3 border border-slate-800 flex items-center justify-between text-xs">
                     <span className="text-slate-400 font-medium">Informes físicos en:</span>
-                    <span className="text-amber-400 font-bold">Carpintería "El Tigre"</span>
+                    <span className="text-amber-400 font-bold">Carpintería "El Chino"</span>
                   </div>
                 </div>
               </div>

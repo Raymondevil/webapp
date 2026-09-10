@@ -26,7 +26,7 @@ export const EventsProgram: React.FC<EventsProgramProps> = ({
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div className="space-y-3">
             <span className="bg-amber-500/10 text-amber-300 border border-amber-500/30 text-xs font-black px-3.5 py-1 rounded-full uppercase">
-              <i className="fa-solid fa-calendar-days mr-1"></i> Cobertura 10 al Cierre
+              <i className="fa-solid fa-calendar-days mr-1"></i> Cobertura 12 al 19
             </span>
             <h2 className="font-serif font-black text-3xl sm:text-4xl text-white">
               Programa Oficial de Fiestas Patrias
