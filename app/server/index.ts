@@ -1,5 +1,4 @@
 import { Hono } from 'hono'
-import { cors } from 'hono/cors'
 import { officialEvents, initialGallery, initialOrders } from '../data/initialData'
 import type { GalleryItem, Order, ContactMessage } from '../types'
 
@@ -10,11 +9,10 @@ type Bindings = {
   MEDIA?: any
   ADMIN_PASSWORD?: string
   ADMIN_TOKEN?: string
+  ADMIN_SESSION_SECRET?: string
 }
 
 export const app = new Hono<{ Bindings: Bindings }>()
-
-app.use('/api/*', cors())
 
 // In-memory data fallback
 let memoryGallery: GalleryItem[] = [...initialGallery]
@@ -27,11 +25,44 @@ function getD1(c: any) {
   return c.env?.fotos || c.env?.serve || c.env?.DB || null
 }
 
-function isAdmin(c: any) {
-  const authHeader = c.req.header('Authorization')
-  const token = authHeader ? authHeader.replace(/^Bearer\s+/i, '') : ''
-  const expectedToken = c.env?.ADMIN_TOKEN
-  return Boolean(expectedToken) && token === expectedToken
+const sessionCookie = 'eltigre_admin'
+const sessionTtlSeconds = 60 * 60 * 8
+
+function base64Url(bytes: Uint8Array) {
+  let value = ''
+  for (const byte of bytes) value += String.fromCharCode(byte)
+  return btoa(value).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+}
+
+function parseCookies(header: string | undefined) {
+  return Object.fromEntries((header || '').split(';').map((part) => {
+    const index = part.indexOf('=')
+    return index < 0 ? [] : [part.slice(0, index).trim(), part.slice(index + 1).trim()]
+  }).filter((part) => part.length === 2)) as Record<string, string>
+}
+
+async function signSession(payload: string, secret: string) {
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
+  return base64Url(new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload))))
+}
+
+async function isAdmin(c: any) {
+  const secret = c.env?.ADMIN_SESSION_SECRET || c.env?.ADMIN_TOKEN
+  const token = parseCookies(c.req.header('Cookie'))[sessionCookie]
+  if (!secret || !token) return false
+  const [expires, signature] = token.split('.')
+  if (!expires || !signature || !/^\d+$/.test(expires) || Number(expires) < Math.floor(Date.now() / 1000)) return false
+  const expected = await signSession(expires, secret)
+  return signature === expected
+}
+
+function sessionCookieValue(secret: string) {
+  const expires = Math.floor(Date.now() / 1000) + sessionTtlSeconds
+  return signSession(String(expires), secret).then((signature) => `${expires}.${signature}`)
+}
+
+function clearSession(c: any) {
+  c.header('Set-Cookie', `${sessionCookie}=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0`)
 }
 
 function mediaIdIsSafe(id: string) {
@@ -239,14 +270,16 @@ app.post('/api/admin/login', async (c) => {
     }
     
     const adminPassword = (c.env as any)?.ADMIN_PASSWORD
-    const adminToken = (c.env as any)?.ADMIN_TOKEN
+    const sessionSecret = (c.env as any)?.ADMIN_SESSION_SECRET || (c.env as any)?.ADMIN_TOKEN
 
-    if (!adminPassword || !adminToken) {
+    if (!adminPassword || !sessionSecret) {
       return c.json({ success: false, error: 'Administración no configurada' }, 503)
     }
     
     if (password === adminPassword) {
-      return c.json({ success: true, token: adminToken })
+      const token = await sessionCookieValue(sessionSecret)
+      c.header('Set-Cookie', `${sessionCookie}=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${sessionTtlSeconds}`)
+      return c.json({ success: true })
     }
     return c.json({ success: false, error: 'Contraseña incorrecta' }, 401)
   } catch {
@@ -254,9 +287,14 @@ app.post('/api/admin/login', async (c) => {
   }
 })
 
+app.post('/api/admin/logout', (c) => {
+  clearSession(c)
+  return c.json({ success: true })
+})
+
 // POST /api/media/upload - Private original plus public low-resolution preview.
 app.post('/api/media/upload', async (c) => {
-  if (!isAdmin(c)) return c.json({ success: false, error: 'Acceso no autorizado' }, 401)
+  if (!await isAdmin(c)) return c.json({ success: false, error: 'Acceso no autorizado' }, 401)
 
   const media = c.env?.MEDIA
   if (!media) return c.json({ success: false, error: 'Almacenamiento de medios no configurado' }, 503)
@@ -289,7 +327,7 @@ app.post('/api/media/upload', async (c) => {
         return c.json({ success: false, error: 'No se pudo crear la vista previa de la foto.' }, 400)
       }
       const previewFile = preview as File
-      if (!previewFile.type.startsWith('image/') || previewFile.size === 0 || previewFile.size > 5 * 1024 * 1024) {
+      if (previewFile.type !== 'image/webp' || previewFile.size === 0 || previewFile.size > 5 * 1024 * 1024) {
         return c.json({ success: false, error: 'La vista previa no es válida.' }, 400)
       }
       const previewKey = `previews/${mediaId}.webp`
@@ -316,12 +354,11 @@ app.post('/api/media/upload', async (c) => {
   }
 })
 
-// GET /media/previews/... and /media/receipts/...
+// GET /media/previews/... (only low-resolution catalog previews are public).
 app.on(['GET', 'HEAD'], '/media/*', async (c) => {
   const key = decodeURIComponent(new URL(c.req.url).pathname.replace(/^\/media\//, ''))
   const isPreview = /^previews\/m-[0-9a-f-]{36}\.webp$/i.test(key)
-  const isReceipt = /^receipts\/rec-[0-9a-f-]{36}\.[a-z0-9]+$/i.test(key)
-  if (!isPreview && !isReceipt) return c.text('Archivo no válido', 400)
+  if (!isPreview) return c.text('Archivo no válido', 400)
 
   const media = c.env?.MEDIA
   if (!media) return c.text('Almacenamiento no disponible', 503)
@@ -339,10 +376,6 @@ app.on(['GET', 'HEAD'], '/media/*', async (c) => {
 async function verifyDownloadCode(code: string, photoId: string, c: any): Promise<boolean> {
   const cleanCode = code.trim().toUpperCase()
   if (!cleanCode) return false
-  if (cleanCode === 'TIGRE2026' || cleanCode === 'ELTIGRE2026' || cleanCode === 'ADMIN' || code === 'admin-secret-token-eltigre') {
-    return true
-  }
-
   // Check R2 protected media access hash if it's an uploaded file
   if (photoId.startsWith('m-')) {
     const media = c.env?.MEDIA
@@ -376,7 +409,7 @@ async function verifyDownloadCode(code: string, photoId: string, c: any): Promis
     const ordId = (ord.id || '').trim().toUpperCase()
     if (cleanCode === ordCode || cleanCode === ordId) {
       const st = (ord.status || '').toLowerCase()
-      const isApproved = st.includes('paga') || st.includes('aprob') || st.includes('completa') || Boolean(ord.downloadCode)
+      const isApproved = st.includes('paga') || st.includes('aprob') || st.includes('completa')
       if (isApproved) {
         let photoIds: string[] = []
         try {
@@ -496,7 +529,7 @@ app.post('/api/receipts/upload', async (c) => {
     const notes = String(formData.get('notes') || '').trim()
     const total = Number(formData.get('total') || 50)
 
-    if (!clientName || !phone) {
+    if (!clientName || clientName.length > 100 || !/^\+?[0-9()\s-]{10,20}$/.test(phone)) {
       return c.json({ success: false, error: 'Por favor ingresa tu Nombre y Teléfono.' }, 400)
     }
 
@@ -504,24 +537,26 @@ app.post('/api/receipts/upload', async (c) => {
     const media = c.env?.MEDIA
 
     if (receiptFile && typeof receiptFile.arrayBuffer === 'function' && receiptFile.size > 0) {
-      const ext = mediaExtensions[receiptFile.type] || 'jpg'
+      const receiptTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif'])
+      if (!receiptTypes.has(receiptFile.type) || receiptFile.size > 10 * 1024 * 1024) {
+        return c.json({ success: false, error: 'El comprobante debe ser una imagen JPG, PNG, WebP o AVIF de máximo 10 MB.' }, 400)
+      }
+      const ext = mediaExtensions[receiptFile.type]
       const receiptId = `rec-${crypto.randomUUID()}`
-      const receiptKey = `receipts/${receiptId}.${ext}`
+      const receiptKey = `private/receipts/${receiptId}.${ext}`
 
       if (media) {
         await media.put(receiptKey, await receiptFile.arrayBuffer(), {
-          httpMetadata: { contentType: receiptFile.type, cacheControl: 'public, max-age=31536000' }
+          httpMetadata: { contentType: receiptFile.type, cacheControl: 'private, no-store' }
         })
-        receiptUrl = `/media/${receiptKey}`
+        receiptUrl = `/api/admin/receipts/${receiptId}.${ext}`
       } else {
-        const buffer = await receiptFile.arrayBuffer()
-        const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)))
-        receiptUrl = `data:${receiptFile.type};base64,${base64}`
+        return c.json({ success: false, error: 'Almacenamiento de comprobantes no configurado.' }, 503)
       }
     }
 
-    const orderId = 'TIG-' + Math.floor(1000 + Math.random() * 9000)
-    const downloadCode = `TIGRE-${Math.floor(1000 + Math.random() * 9000)}`
+    const orderId = `TIG-${crypto.randomUUID().slice(0, 8).toUpperCase()}`
+    const downloadCode = `TIGRE-${crypto.randomUUID().slice(0, 8).toUpperCase()}`
 
     const newOrder: Order = {
       id: orderId,
@@ -570,7 +605,6 @@ app.post('/api/receipts/upload', async (c) => {
     return c.json({
       success: true,
       order: newOrder,
-      downloadCode: newOrder.downloadCode,
       message: 'Comprobante recibido con éxito. Será validado en breve.'
     })
   } catch (err: any) {
@@ -581,7 +615,7 @@ app.post('/api/receipts/upload', async (c) => {
 
 // POST /api/admin/orders/:id/status - Update order status and code
 app.post('/api/admin/orders/:id/status', async (c) => {
-  if (!isAdmin(c)) return c.json({ success: false, error: 'Acceso no autorizado' }, 401)
+  if (!await isAdmin(c)) return c.json({ success: false, error: 'Acceso no autorizado' }, 401)
   const id = c.req.param('id')
   try {
     const body = await c.req.json()
@@ -610,6 +644,21 @@ app.post('/api/admin/orders/:id/status', async (c) => {
   } catch {
     return c.json({ success: false, error: 'Error actualizando estado' }, 500)
   }
+})
+
+app.get('/api/admin/receipts/:id', async (c) => {
+  if (!await isAdmin(c)) return c.text('Acceso no autorizado', 401)
+  const id = c.req.param('id')
+  if (!/^rec-[0-9a-f-]{36}\.(avif|jpg|png|webp)$/i.test(id)) return c.text('Archivo no válido', 400)
+  const media = c.env?.MEDIA
+  if (!media) return c.text('Almacenamiento no disponible', 503)
+  const object = await media.get(`private/receipts/${id}`)
+  if (!object) return c.text('Archivo no encontrado', 404)
+  const headers = new Headers()
+  object.writeHttpMetadata(headers)
+  headers.set('cache-control', 'private, no-store')
+  headers.set('x-content-type-options', 'nosniff')
+  return new Response(object.body, { headers })
 })
 
 app.get('/api/media/download/:id', async (c) => {
@@ -641,7 +690,7 @@ app.get('/api/media/download/:id', async (c) => {
 // POST /api/gallery/register
 app.post('/api/gallery/register', async (c) => {
   try {
-    if (!isAdmin(c)) {
+    if (!await isAdmin(c)) {
       return c.json({ success: false, error: 'Acceso no autorizado' }, 401)
     }
 
@@ -725,7 +774,7 @@ app.post('/api/orders', async (c) => {
       return c.json({ success: false, error: validation.error }, 400)
     }
     const newOrder: Order = {
-      id: 'TIG-' + Math.floor(1000 + Math.random() * 9000),
+      id: `TIG-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
       clientName: body.clientName || 'Cliente',
       phone: body.phone || 'N/A',
       videoPass: Boolean(body.videoPass),
@@ -734,9 +783,9 @@ app.post('/api/orders', async (c) => {
       selectedEvents: body.selectedEvents || [],
       notes: body.notes || '',
       total: Number(body.total || 0),
-      status: body.status || 'Pendiente',
-      receiptUrl: body.receiptUrl || '',
-      downloadCode: body.downloadCode || `TIGRE-${Math.floor(1000 + Math.random() * 9000)}`,
+      status: 'Pendiente',
+      receiptUrl: '',
+      downloadCode: '',
       createdAt: new Date().toISOString()
     }
 
@@ -776,6 +825,7 @@ app.post('/api/orders', async (c) => {
 
 // GET /api/orders
 app.get('/api/orders', async (c) => {
+  if (!await isAdmin(c)) return c.json({ success: false, error: 'Acceso no autorizado' }, 401)
   const db = getD1(c)
   let ordersList = memoryOrders
 
@@ -828,6 +878,9 @@ app.get('/api/orders', async (c) => {
 app.post('/api/contact', async (c) => {
   try {
     const body = await c.req.json()
+    if (!body?.name || typeof body.name !== 'string' || body.name.trim().length > 100 || !body?.phone || !/^\+?[0-9()\s-]{10,20}$/.test(body.phone) || !body?.message || typeof body.message !== 'string' || body.message.trim().length > 2000) {
+      return c.json({ success: false, error: 'Completa los datos de contacto correctamente.' }, 400)
+    }
     const msg: ContactMessage = {
       id: 'msg-' + Date.now(),
       name: body.name,

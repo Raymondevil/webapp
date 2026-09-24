@@ -87,7 +87,7 @@ export const OrderCalculator: React.FC<OrderCalculatorProps> = ({
     }
     text += `\n*TOTAL ESTACIONAL:* $${grandTotal} MXN`
 
-    return `https://wa.me/523118470860?text=${encodeURIComponent(text)}`
+    return `https://wa.me/526673542363?text=${encodeURIComponent(text)}`
   }
 
   // Validate phone format (Mexican format)
@@ -134,7 +134,7 @@ export const OrderCalculator: React.FC<OrderCalculatorProps> = ({
           const orderId = res.data.order?.id || 'TIG-ORDER'
           setMessage({
             type: 'success',
-            text: `¡Pedido #${orderId} con comprobante registrado! Código de descarga generado: ${res.data.downloadCode || 'Pendiente'}.`
+            text: `¡Pedido #${orderId} con comprobante registrado! Te avisaremos cuando sea validado y tu descarga esté disponible.`
           })
           onOrderSubmitted(orderId)
         } else {
@@ -491,7 +491,7 @@ export const OrderCalculator: React.FC<OrderCalculatorProps> = ({
                   rel="noopener noreferrer"
                   className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 text-xs cursor-pointer"
                 >
-                  <i className="fa-brands fa-whatsapp text-lg"></i> Enviar Pedido por WhatsApp (3118470860)
+                  <i className="fa-brands fa-whatsapp text-lg"></i> Enviar Pedido por WhatsApp (6673542363)
                 </a>
 
                 <button

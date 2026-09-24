@@ -203,3 +203,4 @@ dist
 .react-router/
 /build/
 ./public/static/photos
+./public/static/video

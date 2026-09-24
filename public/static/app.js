@@ -440,7 +440,7 @@ function sendBatchWhatsAppOrder() {
     message += `\n¡Por favor envíenme estas fotos con los formatos seleccionados!`;
 
     const encoded = encodeURIComponent(message);
-    window.open(`https://wa.me/523118470860?text=${encoded}`, '_blank');
+    window.open(`https://wa.me/526673542363?text=${encoded}`, '_blank');
 }
 
 // Search by Dorsal
@@ -560,7 +560,7 @@ function recalculateTotal() {
     if (totalEl) totalEl.innerText = grandTotal;
 }
 
-// Generate & Send WhatsApp Order to 3118470860
+// Generate & Send WhatsApp Order to 6673542363
 function sendOrderViaWhatsApp() {
     const name = document.getElementById('client-name').value.trim();
     const phone = document.getElementById('client-phone').value.trim();
@@ -594,7 +594,7 @@ function sendOrderViaWhatsApp() {
     message += `\n📍 *Lugar de Entrega / Informes:* Carpintería El Tigre, San Pedro Lagunillas, Nayarit.\n`;
 
     const encodedMsg = encodeURIComponent(message);
-    window.open(`https://wa.me/523118470860?text=${encodedMsg}`, '_blank');
+    window.open(`https://wa.me/526673542363?text=${encodedMsg}`, '_blank');
     showOrderStatus('¡Mensaje de WhatsApp preparado correctamente!', 'success');
 }
 

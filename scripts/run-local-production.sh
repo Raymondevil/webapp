@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-project_dir="/media/proyecto/webapp"
+project_dir="/media/ram/webapp"
 node_bin="/home/ram/.nvm/versions/node/v24.19.0/bin"
 runtime_dir="$project_dir/.runtime"
 

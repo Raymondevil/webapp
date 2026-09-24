@@ -40,7 +40,7 @@ export function App() {
   }
 
   // Load API data on mount
-  const loadData = async () => {
+  const loadData = async (includeOrders = false) => {
     try {
       const [eventsRes, galleryRes, ordersRes] = await Promise.all([
         axios.get('/api/events').catch((err) => {
@@ -51,10 +51,12 @@ export function App() {
           console.error('Error loading gallery:', err.message)
           return null
         }),
-        axios.get('/api/orders').catch((err) => {
-          console.error('Error loading orders:', err.message)
-          return null
-        })
+        includeOrders
+          ? axios.get('/api/orders').catch((err) => {
+              console.error('Error loading orders:', err.message)
+              return null
+            })
+          : Promise.resolve(null)
       ])
 
       if (eventsRes?.data?.events) {
@@ -198,7 +200,7 @@ export function App() {
           <AdminSection
             galleryItems={galleryItems}
             orders={orders}
-            onRefreshData={loadData}
+            onRefreshData={() => loadData(true)}
           />
         )}
       </main>

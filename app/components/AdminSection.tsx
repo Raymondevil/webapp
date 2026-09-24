@@ -13,9 +13,7 @@ export const AdminSection: React.FC<AdminSectionProps> = ({
   orders,
   onRefreshData
 }) => {
-  const [authToken, setAuthToken] = useState<string | null>(
-    typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null
-  )
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [password, setPassword] = useState('')
   const [loginError, setLoginError] = useState('')
   const [activeSubTab, setActiveSubTab] = useState<'orders' | 'upload' | 'gallery'>('orders')
@@ -45,7 +43,7 @@ export const AdminSection: React.FC<AdminSectionProps> = ({
       await axios.post(
         `/api/admin/orders/${orderId}/status`,
         { status, downloadCode: code },
-        { headers: { Authorization: `Bearer ${authToken}` } }
+        { withCredentials: true }
       )
       onRefreshData()
     } catch (err) {
@@ -61,10 +59,8 @@ export const AdminSection: React.FC<AdminSectionProps> = ({
     try {
       const res = await axios.post('/api/admin/login', { password })
       if (res.data && res.data.success) {
-        setAuthToken(res.data.token || 'admin-secret-token')
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('adminToken', res.data.token || 'admin-secret-token')
-        }
+        setIsAuthenticated(true)
+        onRefreshData()
       } else {
         setLoginError('Contraseña incorrecta.')
       }
@@ -73,10 +69,11 @@ export const AdminSection: React.FC<AdminSectionProps> = ({
     }
   }
 
-  const handleLogout = () => {
-    setAuthToken(null)
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('adminToken')
+  const handleLogout = async () => {
+    try {
+      await axios.post('/api/admin/logout')
+    } finally {
+      setIsAuthenticated(false)
     }
   }
 
@@ -100,7 +97,7 @@ export const AdminSection: React.FC<AdminSectionProps> = ({
         fileData.append('downloadCode', downloadCode.trim())
         if (selectedFile.type.startsWith('image/')) fileData.append('preview', await createPreview(selectedFile))
         const uploadRes = await axios.post('/api/media/upload', fileData, {
-          headers: { Authorization: `Bearer ${authToken}` }
+          withCredentials: true
         })
         if (!uploadRes.data?.success || !uploadRes.data.url) {
           throw new Error(uploadRes.data?.error || 'No se pudo subir el archivo.')
@@ -124,9 +121,7 @@ export const AdminSection: React.FC<AdminSectionProps> = ({
           dorsal: newDorsal
         },
         {
-          headers: {
-            Authorization: `Bearer ${authToken}`
-          }
+          withCredentials: true
         }
       )
 
@@ -179,7 +174,7 @@ export const AdminSection: React.FC<AdminSectionProps> = ({
     return new File([blob], 'vista-previa.webp', { type: 'image/webp' })
   }
 
-  if (!authToken) {
+  if (!isAuthenticated) {
     return (
       <div className="max-w-md mx-auto py-16 px-4">
         <div className="bg-slate-900 border border-amber-500/30 rounded-3xl p-8 space-y-6 shadow-2xl">

@@ -37,7 +37,7 @@ Sitio web interactivo y plataforma de venta de contenido fotográfico y audiovis
    - Contador incremental de fotos individuales ($50 c/u) con cálculo en tiempo real.
    - Selección de eventos de interés (Topaderas, Cabalgata, Noche del Grito, Bailes, etc.).
    - Campo para notas y solicitudes de fotos personalizadas.
-   - **Botón WhatsApp (3118470860)**: Prepara automáticamente un mensaje formateado con el resumen de la compra para enviar con un solo clic.
+   - **Botón WhatsApp (6673542363)**: Prepara automáticamente un mensaje formateado con el resumen de la compra para enviar con un solo clic.
    - **Botón Registrar en Línea**: Guarda la solicitud directamente en la base de datos del servidor Hono API.
 4. **Calendario y Programa de Fiestas Patrias**:
    - Listado ordenado por fechas desde la Entrada de la Música (10 Sep) hasta la Última Topadera de cierre.
@@ -83,7 +83,7 @@ Sitio web interactivo y plataforma de venta de contenido fotográfico y audiovis
    - Marca la casilla si deseas el **Paquete de Videos de Todos los Días ($600 MXN)**.
    - Ajusta el contador de **Fotos Individuales ($50 MXN c/u)**.
    - Escribe en las notas qué fotos buscas (ej. *"Foto de mi caballo bayo en la cabalgata del 14"*).
-4. **Enviar**: Haz clic en **"Enviar por WhatsApp"** para contactar directamente al número `3118470860` con la orden desglosada, o en **"Registrar Solicitud en Línea"**.
+4. **Enviar**: Haz clic en **"Enviar por WhatsApp"** para contactar directamente al número `6673542363` con la orden desglosada, o en **"Registrar Solicitud en Línea"**.
 5. **Entrega**: Pasa por tu memoria USB o tus impresiones a **Carpintería El Tigre** en San Pedro Lagunillas, Nayarit.
 
 ---

@@ -17,7 +17,7 @@ export const DownloadProofModal: React.FC<DownloadProofModalProps> = ({ photo, i
   const [downloadCode, setDownloadCode] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [successData, setSuccessData] = useState<{ orderId: string; downloadCode: string } | null>(null)
+  const [successData, setSuccessData] = useState<{ orderId: string } | null>(null)
 
   if (!isOpen || !photo) return null
 
@@ -55,8 +55,7 @@ export const DownloadProofModal: React.FC<DownloadProofModalProps> = ({ photo, i
         return
       }
       setSuccessData({
-        orderId: response.data.order?.id || 'TIG-REC',
-        downloadCode: response.data.downloadCode || ''
+        orderId: response.data.order?.id || 'TIG-REC'
       })
     } catch (error: any) {
       setErrorMessage(error.response?.data?.error || 'Error al conectar con el servidor.')
@@ -138,7 +137,7 @@ export const DownloadProofModal: React.FC<DownloadProofModalProps> = ({ photo, i
             </form>
           )}
 
-          {activeTab === 'upload' && successData && <div className="text-center space-y-4 py-5"><i className="fa-solid fa-circle-check text-5xl text-emerald-400"></i><h3 className="font-serif font-black text-2xl text-white">¡Comprobante recibido!</h3><p className="text-xs text-slate-300">Folio: <span className="font-mono text-amber-300">{successData.orderId}</span></p><button onClick={() => { setActiveTab('code'); setDownloadCode(successData.downloadCode) }} className="text-xs font-bold text-amber-300 cursor-pointer">Usar mi código de descarga</button></div>}
+          {activeTab === 'upload' && successData && <div className="text-center space-y-4 py-5"><i className="fa-solid fa-circle-check text-5xl text-emerald-400"></i><h3 className="font-serif font-black text-2xl text-white">¡Comprobante recibido!</h3><p className="text-xs text-slate-300">Folio: <span className="font-mono text-amber-300">{successData.orderId}</span></p><p className="text-xs text-slate-400">Validaremos tu pago y te enviaremos el código de descarga.</p></div>}
 
           {activeTab === 'code' && <form onSubmit={handleVerifyCode} className="space-y-4"><h3 className="font-serif font-bold text-lg text-white">Ingresa tu Código de Descarga</h3><input required value={downloadCode} onChange={(event) => setDownloadCode(event.target.value.toUpperCase())} placeholder="Ej. TIGRE-1234" className="w-full bg-slate-950 border border-slate-800 focus:border-amber-400 rounded-xl px-4 py-3 text-sm font-mono font-bold text-amber-400 uppercase focus:outline-none" />{errorMessage && <p className="p-3 bg-red-500/20 border border-red-500/30 text-red-300 rounded-xl text-xs font-bold text-center">{errorMessage}</p>}<button type="submit" disabled={isSubmitting} className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-3.5 rounded-xl text-xs disabled:opacity-50 cursor-pointer">{isSubmitting ? 'Verificando código...' : 'Desbloquear y Descargar'}</button></form>}
         </div>

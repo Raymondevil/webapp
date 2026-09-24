@@ -107,7 +107,7 @@ export const LightboxModal: React.FC<LightboxModalProps> = ({
               </button>
 
               <a
-                href={`https://wa.me/523118470860?text=${encodeURIComponent(`Hola! Me interesa pedir la foto/video "${photo.title}" (ID: ${photo.id}, Dorsal: ${photo.dorsal || 'N/A'})`)}`}
+                href={`https://wa.me/526673542363?text=${encodeURIComponent(`Hola! Me interesa pedir la foto/video "${photo.title}" (ID: ${photo.id}, Dorsal: ${photo.dorsal || 'N/A'})`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 text-xs cursor-pointer"

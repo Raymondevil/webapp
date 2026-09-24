@@ -81,7 +81,7 @@ export const ContactSection: React.FC = () => {
                 <span>
                   <strong>Teléfono / WhatsApp Directo:</strong>{' '}
                   <a
-                    href="https://wa.me/523118470860"
+                    href="https://wa.me/526673542363"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-amber-400 hover:underline font-bold"
@@ -101,7 +101,7 @@ export const ContactSection: React.FC = () => {
 
             <div className="pt-4 border-t border-slate-800">
               <a
-                href="https://wa.me/523118470860?text=Hola!%20Deseo%20información%20sobre%20las%20fotos/videos%20de%20San%20Pedro%20Lagunillas"
+                href="https://wa.me/526673542363?text=Hola!%20Deseo%20información%20sobre%20las%20fotos/videos%20de%20San%20Pedro%20Lagunillas"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 text-xs cursor-pointer"

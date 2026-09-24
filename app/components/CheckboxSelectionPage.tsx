@@ -74,7 +74,7 @@ export const CheckboxSelectionPage: React.FC<CheckboxSelectionPageProps> = ({
       }
     })
     text += `\n*TOTAL:* $${grandTotal} MXN`
-    return `https://wa.me/523118470860?text=${encodeURIComponent(text)}`
+    return `https://wa.me/526673542363?text=${encodeURIComponent(text)}`
   }
 
   return (
